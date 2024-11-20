@@ -4,23 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4f321865-4a83-4942-85f8-968f8d4ae92a" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/replicate_sql.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/Admin.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/df_conditions.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/left_joins.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/pandas_series.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/user.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/water_meters.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/water_readings.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/wconnection_amount.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/wconnection_readings.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/wmeter_readings.py" afterDir="false" />
+    <list default="true" id="4f321865-4a83-4942-85f8-968f8d4ae92a" name="Changes" comment="Mainstream MYSQL projects using Python">
+      <change afterPath="$PROJECT_DIR$/water.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/Admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/admin.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -37,6 +24,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "sourceCodeSherpa"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/sourceCodeSherpa/mutall_python_rentize.git",
+    "accountId": "b15ff28e-8aa1-4cee-9e6c-3f0f13e6906b"
+  }
+}]]></component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
   </component>
@@ -54,6 +53,7 @@
     "Python.Admin.executor": "Debug",
     "Python.left_joins.executor": "Debug",
     "Python.main.executor": "Run",
+    "Python.water.executor": "Debug",
     "Python.wconnection_amount.executor": "Debug",
     "Python.wconnection_readings.executor": "Debug",
     "Python.wmeter_readings.executor": "Debug",
@@ -136,6 +136,15 @@
       <option name="presentableId" value="Default" />
       <updated>1730048897731</updated>
     </task>
+    <task id="LOCAL-00001" summary="Mainstream MYSQL projects using Python">
+      <option name="closed" value="true" />
+      <created>1732023542616</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1732023542616</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -143,11 +152,27 @@
       <map>
         <entry key="MAIN">
           <value>
-            <State />
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="main" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
           </value>
         </entry>
       </map>
     </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Mainstream MYSQL projects using Python" />
+    <option name="LAST_COMMIT_MESSAGE" value="Mainstream MYSQL projects using Python" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -168,14 +193,19 @@
           <option name="timeStamp" value="43" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/tests/Admin.py</url>
-          <line>59</line>
-          <option name="timeStamp" value="48" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/wconnection_amount.py</url>
           <line>243</line>
           <option name="timeStamp" value="49" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/tests/admin.py</url>
+          <line>58</line>
+          <option name="timeStamp" value="50" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/water.py</url>
+          <line>107</line>
+          <option name="timeStamp" value="51" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
