@@ -5,6 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4f321865-4a83-4942-85f8-968f8d4ae92a" name="Changes" comment="Mainstream MYSQL projects using Python">
+      <change afterPath="$PROJECT_DIR$/water2.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/water.py" beforeDir="false" afterPath="$PROJECT_DIR$/water.py" afterDir="false" />
     </list>
@@ -49,13 +50,15 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "Python tests.Doctests in base.executor": "Debug",
     "Python tests.Doctests in generic.executor": "Debug",
     "Python.Admin.executor": "Debug",
     "Python.left_joins.executor": "Debug",
     "Python.main.executor": "Run",
     "Python.water.executor": "Debug",
+    "Python.water2.executor": "Run",
     "Python.wconnection_amount.executor": "Debug",
-    "Python.wconnection_readings.executor": "Debug",
+    "Python.wconnection_readings.executor": "Run",
     "Python.wmeter_readings.executor": "Debug",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "main",
@@ -212,13 +215,14 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/water.py</url>
-          <line>350</line>
-          <option name="timeStamp" value="58" />
+          <line>420</line>
+          <option name="timeStamp" value="60" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
     <watches-manager>
       <configuration name="PythonConfigurationType">
+        <watch expression="__exception__" />
         <watch expression="__exception__" />
       </configuration>
     </watches-manager>
