@@ -2,13 +2,13 @@
 # File objective 2: Define another class for getting the service charges
 #
 # Import libraries to use
-from mysql.connector import MySQLConnection, connect
+from mysql.connector import connect
 from mysql.connector.cursor import MySQLCursorDict
 import pandas as pd
-from pandas import DataFrame, merge, to_datetime, Timestamp
+from mysql.connector.pooling import PooledMySQLConnection
+from pandas import DataFrame, merge, to_datetime
 from pandas.core.groupby.generic import DataFrameGroupBy
 from datetime import date, datetime
-
 #
 # Set display options for pandas - to show all columns and full width
 pd.set_option('display.max_columns', None)
@@ -20,7 +20,7 @@ pd.set_option('display.expand_frame_repr', False)
 # - Define function to initialize Database (DB) connection
 # - The function returns the connection and cursor objects in a tuple of mixed
 #   types (MySQLConnection, and MySQLCursorDict).
-def init() -> tuple[MySQLConnection, MySQLCursorDict]:
+def init() -> tuple[PooledMySQLConnection, MySQLCursorDict]:
     #
     # Connect to the database
     # - Store database connection configuration arguments in a dictionary
@@ -33,7 +33,7 @@ def init() -> tuple[MySQLConnection, MySQLCursorDict]:
     #
     # - Unpack the configurations dictionary above to connect to the database
     #   and assigning the database connection object to a variable
-    conn: MySQLConnection = connect(**config)
+    conn: PooledMySQLConnection = connect(**config)
     #
     # Create a cursor object to interact with the connected database
     # - Set the cursor object to always return query results in a list instead
@@ -54,96 +54,124 @@ def init() -> tuple[MySQLConnection, MySQLCursorDict]:
 
 
 #
+# Manage other classes
+class Rentize:
+    def __init__(self, month, year):
+        self.month = month
+        self.year = year
+        self.client = Client(month, year)
+        self.service = Service(month, year)
+
+    #
+    # Define method for showing all active clients
+    def show_client(self):
+        return self.client.get_active_clients()
+
+    #
+    # Define method for showing all services charged
+    def show_service(self):
+        return self.service.get_subscriptions()
+
+    #
+    # Define method for showing all auto services
+    def show_auto_service(self):
+        return self.service.get_auto_services()
+
+
+#
+# # Variable dates
+
+
+#
 # Define a class that encapsulates all the clients to be invoiced this month
 class Client:
     #
     # Define the constructor method
-    def __init__(self):
-        pass
+    def __init__(self, month, year):
+        self.month = month
+        self.year = year
+        self.specified_date = datetime(self.year, self.month, 1)
 
     # Define the methods of the class
     #
     # Define method that gets active clients
-    @staticmethod
-    def get_active_clients() -> DataFrame:
+    def get_active_clients(self) -> DataFrame:
         #
-        # Get list of all clients from the database
-        kasa.execute("select client, name, quarterly from client")
+        # Get list of all clients that have a valid agreement and their
+        #   respective payment modes from the database.
         #
-        # Fetch results from the database
-        all_clients: list[dict] = kasa.fetchall()
-        #
-        # Create a DataFrame from fetched result
-        all_clients_df: DataFrame = DataFrame(all_clients)
-        #
-        # Get list of all agreements from the Database
+        # Execute query on the database
         kasa.execute(
             """
-                select
-                    client,
-                    start_date, 
-                    `terminated`, 
-                    valid
-                from 
-                    agreement
+            with
+                valid_agreement as (
+                    select distinct
+                        client,
+                        #
+                        # Select the first start_date for client with multiple
+                        #  agreement start dates
+                        min(start_date) as start_date
+                    from
+                        agreement
+                    where
+                        valid = 1
+                        and `terminated` is null
+                    group by
+                        client
+                )
+            select
+                client.client,
+                client.name as client_name,
+                client.quarterly,
+                valid_agreement.start_date
+            from
+                client
+                inner join valid_agreement on valid_agreement.client = client.client
             """
         )
         #
         # Fetch results from the database
-        agreements: list[dict] = kasa.fetchall()
+        active_clients: list[dict] = kasa.fetchall()
         #
         # Create a DataFrame for the fetched result
-        agreements_df: DataFrame = DataFrame(agreements)
+        active_clients_df: DataFrame = DataFrame(active_clients)
         #
         # Convert agreement start date to standard date format
-        agreements_df['start_date'] = to_datetime(agreements_df['start_date'])
-        #
-        # Get the active clients - whose agreements are valid and not terminated
-        # - Join the clients and agreement DataFrames
-        clients_and_agreements_df: DataFrame = merge(
-            all_clients_df, agreements_df, on='client',
-            how='inner'
+        active_clients_df['start_date'] = to_datetime(
+            active_clients_df['start_date']
         )
         #
-        # - Filter the joined client and agreement DataFrame
-        # - Only return clients whose agreements are valid and are not
-        #   terminated
-        active_clients_df: DataFrame = clients_and_agreements_df[
-            (clients_and_agreements_df['valid'] == 1) &
-            (clients_and_agreements_df['terminated'].isna())]
+        # Add year and month columns in DataFrame
+        active_clients_df['year'] = self.year
+        active_clients_df['month'] = self.month
+        #
+        # Calculate factor for each client based on the specified date
+        #
+        # Calculate month difference for each client between their agreement
+        #   first date and the specified date
+        active_clients_df['month_difference'] = (
+            ((self.specified_date.year - active_clients_df['start_date'].dt.year)*12)
+            + (self.specified_date.month - active_clients_df['start_date'].dt.month)
+        )
+        #
+        # Calculate factor for each client based on their payment type
+        #
+        # Monthly clients have a factor of 1
+        active_clients_df['factor'] = 1
+        #
+        # Quarterly clients that are due have a factor of 3
+        active_clients_df.loc[
+            (active_clients_df['quarterly'] == 1)
+            & (active_clients_df['month_difference'] % 3 == 0),
+            'factor'
+        ] = 3
+        active_clients_df.loc[
+            (active_clients_df['quarterly'] == 1)
+            & (active_clients_df['month_difference'] % 3 != 0),
+            'factor'
+        ] = 0
 
         return active_clients_df
-
-    # Get clients that should be invoiced this month
-    # - Only active clients that pay monthly and those who pay quarterly and
-    #   paid 3 months ago
-    def get_clients_to_invoice(self):
-        #
-        # Convert today's date to standard date format
-        today: Timestamp = to_datetime(datetime.today())
-        #
-        # Select clients who are invoiced monthly together with the quarterly
-        #   clients that are to be invoiced this month
-        clients: DataFrame = self.get_active_clients()
-        clients_to_invoice_df: DataFrame = clients[
-            #
-            # Return the monthly clients
-            (clients['quarterly'] == 0)
-            #
-            # Return the quarterly clients that should be invoiced this month
-            | (
-                    (clients['quarterly'] == 1)
-                    & (
-                        #
-                        # Get the difference in months between today and
-                        # agreement start date and get the modulus of the result
-                        ((today.year - clients['start_date'].dt.year) * 12)
-                        + (today.month - clients['start_date'].dt.month)
-                    ) % 3 == 0
-              )
-        ]
-
-        return clients_to_invoice_df
 
 
 #
@@ -260,12 +288,16 @@ class Water:
         # - Get today's date
         leo: datetime = datetime.today()
         #
-        # Based on today's date (month), get the invoice period of last month
+        # Handle month and year for the last period and have condition for
+        #   current date being January
+        last_month = leo.month - 1 if leo.month > 1 else 12
+        year = leo.year if leo.month > 1 else leo.year - 1
+        #
+        # Get the invoice period of last month
         last_period_df: DataFrame = periods_df[
-            (periods_df['month'] == leo.month - 1)
-            & (periods_df['year'] == leo.year)
-            ]
-        # - Get cutoff date based on the returned period (last period)
+            (periods_df['month'] == last_month) & (periods_df['year'] == year)
+        ]
+        # Get cutoff date based on the returned period (last period)
         cutoff_date: date = last_period_df.iloc[0]['cutoff']
         #
         # Get water readings based on the cutoff|last invoice date
@@ -281,11 +313,12 @@ class Water:
         )
         #
         # - Filter the dataframe to have only rows of the last invoice date
-        # |cutoff date
+        # |cutoff date for each wconnection
         last_invoiced_water_readings_df: DataFrame = \
             all_invoiced_water_readings_df[
                 all_invoiced_water_readings_df['curr_date'] == cutoff_date
             ]
+        print(last_invoiced_water_readings_df.head())
         #
         # Filter the columns to be displayed
         last_invoiced_water_readings_df: DataFrame = (
@@ -296,10 +329,11 @@ class Water:
         #
         # Rename the column names
         last_invoiced_water_readings_df: DataFrame = (
-            last_invoiced_water_readings_df.rename(columns={
-                'curr_date': 'prev_date',
-                'curr_value': 'prev_value'
-            }
+            last_invoiced_water_readings_df.rename(
+                columns={
+                    'curr_date': 'prev_date',
+                    'curr_value': 'prev_value'
+                }
             )
         )
 
@@ -364,70 +398,122 @@ class Water:
             ['wconnection', 'serial_no', 'prev_date', 'prev_value', 'curr_date',
              'curr_value', 'consumption_days', 'total_consumption',
              'avg_daily_cons', 'rate', 'amount']]
+        #
+        # Add room for each
 
         return curr_and_prev_rds
 
 
 #
-# Define a class for service charges calculations
+# Define a class for service charges calculations for each client
 class Service(Client):
-    def __init__(self):
+    def __init__(self, month, year):
         #
         # Call the constructor method of the parent class (Client class)
-        super().__init__()
+        super().__init__(month, year)
         #
         # Define the client DataFrame as a property
-        self.client: DataFrame = super().get_clients_to_invoice()
+        self.client: DataFrame = super().get_active_clients()
 
     #
     # Get the subscriptions and service charges for each client
     def get_subscriptions(self) -> DataFrame:
         #
         # Get all subscriptions for each client
-        # - Get the subscriptions
         kasa.execute("select client, subscription, service from subscription")
-        subscriptions: list[dict] = kasa.fetchall()
-        subscriptions_df = DataFrame(subscriptions)
+        subs: list[dict] = kasa.fetchall()
+        subs_df: DataFrame = DataFrame(subs)
         #
-        # - Join the clients and Subscriptions DataFrames
-        clients_subscriptions_df: DataFrame = merge(
-            self.client, subscriptions_df, how="inner", on="client"
+        # - Join the clients to invoice and Subscriptions DataFrames
+        clients_subs_df: DataFrame = merge(
+            self.client, subs_df, how="inner", on="client"
         )
         #
         # Get the services for each client
         # - Get the services
         kasa.execute("select service, name, price from service")
         services: list[dict] = kasa.fetchall()
-        services_df = DataFrame(services)
+        services_df: DataFrame = DataFrame(services)
         #
         # - Join the clients and subscriptions DataFrame to the services
         #       DataFrame
-        clients_subscriptions_services_df: DataFrame = merge(
-            clients_subscriptions_df, services_df, how="inner", on="service"
+        clients_services_df: DataFrame = merge(
+            clients_subs_df, services_df, how="inner", on="service"
         )
         #
-        # Calculate the total charges
+        # Rename column names in DataFrame
+        clients_services_df = clients_services_df.rename(
+            columns={
+                'name': 'service_name',
+                'price': 'service_price',
+            }
+        )
         #
-        # Group the DataFrame by client and get the total charges
-        grouped_clients_services_dfgb: DataFrameGroupBy = (
-            clients_subscriptions_services_df.groupby("client")
-            .agg({'quarterly': "first", 'price': "sum"}))
+        # Add amount column for each client service
+        clients_services_df['amount'] = (
+                clients_services_df['service_price']
+                * clients_services_df['factor']
+        )
         #
-        # Convert the DataFrameGroupBy object to a DataFrame
-        grouped_clients_services: DataFrame = (grouped_clients_services_dfgb
-                                               .reset_index())
+        # Reorder columns in DataFrame
+        clients_services_df = clients_services_df[[
+            'year', 'month', 'client', 'client_name', 'quarterly',
+            'service_name', 'service_price', 'factor', 'amount'
+        ]]
         #
-        # If client is quartely then the price should be multiplied by 3
-        grouped_clients_services.loc[
-            grouped_clients_services["quarterly"] == 1, "price"] = \
-            grouped_clients_services["price"] * 3
+        # Replace NaN values with default value of zero and remove decimals from
+        #   service price and amount columns
+        clients_services_df['service_price'] = clients_services_df[
+            'service_price'
+        ].fillna(0).astype(int)
+        clients_services_df['amount'] = clients_services_df[
+            'amount'
+        ].fillna(0).astype(int)
 
-        return grouped_clients_services
+        return clients_services_df
 
     #
-    # Get the services for each client
+    # Get all services that are automatically charged
+    def get_auto_services(self):
+        kasa.execute("select * from service where auto = 1")
+        auto_services: list[dict] = kasa.fetchall()
+        auto_services_df: DataFrame = DataFrame(auto_services)
+        #
+        # Merge the Client DataFrame to the automatic services DataFrame
+        auto_clients_df: DataFrame = merge(
+            self.client,
+            auto_services_df,
+            how='cross'
+        )
+        #
+        # Rename column names in DataFrame
+        auto_clients_df = auto_clients_df.rename(
+            columns={
+                'name': 'service_name',
+                'price': 'service_price',
+            }
+        )
+        #
+        # Add amount column for each client auto service
+        auto_clients_df['amount'] = (
+                auto_clients_df['service_price']
+                * auto_clients_df['factor']
+        )
+        #
+        # Reorder columns in DataFrame
+        auto_clients_df = auto_clients_df[[
+            'year', 'month', 'client', 'client_name', 'quarterly',
+            'service_name',
+            'service_price', 'factor', 'amount'
+        ]]
+        #
+        # Replace NaN values with default value of zero and remove decimals from
+        #   service price and amount columns
+        auto_clients_df['service_price'] = auto_clients_df[
+            'service_price'
+        ].fillna(0).astype(int)
+        auto_clients_df['amount'] = auto_clients_df[
+            'amount'
+        ].fillna(0).astype(int)
 
-
-client = Service()
-cl = client.get_subscriptions()
-print("f")
+        return auto_clients_df
