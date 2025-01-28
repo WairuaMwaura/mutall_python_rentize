@@ -5,7 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4f321865-4a83-4942-85f8-968f8d4ae92a" name="Changes" comment="Mainstream MYSQL projects using Python">
-      <change afterPath="$PROJECT_DIR$/water2.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/services.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/water.py" beforeDir="false" afterPath="$PROJECT_DIR$/water.py" afterDir="false" />
     </list>
@@ -55,10 +55,12 @@
     "Python.Admin.executor": "Debug",
     "Python.left_joins.executor": "Debug",
     "Python.main.executor": "Run",
+    "Python.services.executor": "Debug",
+    "Python.test.executor": "Debug",
     "Python.water.executor": "Debug",
     "Python.water2.executor": "Run",
     "Python.wconnection_amount.executor": "Debug",
-    "Python.wconnection_readings.executor": "Run",
+    "Python.wconnection_readings.executor": "Debug",
     "Python.wmeter_readings.executor": "Debug",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "main",
@@ -69,6 +71,9 @@
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\mutall_projects\python_mainstream_2\v\code\replicate_sql" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="D:\mutall_projects\python_mainstream_2\v\code\replicate_sql\tests" />
     </key>
   </component>
   <component name="RunManager">
@@ -215,14 +220,24 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/water.py</url>
-          <line>420</line>
-          <option name="timeStamp" value="60" />
+          <line>431</line>
+          <option name="timeStamp" value="51" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/tests/test.py</url>
+          <line>148</line>
+          <option name="timeStamp" value="52" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/services.py</url>
+          <line>180</line>
+          <option name="timeStamp" value="53" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
     <watches-manager>
       <configuration name="PythonConfigurationType">
-        <watch expression="__exception__" />
+        <watch expression="__exception__" language="Python" />
         <watch expression="__exception__" />
       </configuration>
     </watches-manager>

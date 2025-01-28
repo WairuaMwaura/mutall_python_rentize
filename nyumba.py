@@ -386,41 +386,41 @@ class Service(Client):
         # Get all subscriptions for each client
         # - Get the subscriptions
         kasa.execute("select client, subscription, service from subscription")
-        subscriptions: list[dict] = kasa.fetchall()
-        subscriptions_df = DataFrame(subscriptions)
+        subs: list[dict] = kasa.fetchall()
+        subs_df: DataFrame = DataFrame(subs)
         #
         # - Join the clients and Subscriptions DataFrames
-        clients_subscriptions_df: DataFrame = merge(
-            self.client, subscriptions_df, how="inner", on="client"
+        clients_subs_df: DataFrame = merge(
+            self.client, subs_df, how="inner", on="client"
         )
         #
         # Get the services for each client
         # - Get the services
         kasa.execute("select service, name, price from service")
         services: list[dict] = kasa.fetchall()
-        services_df = DataFrame(services)
+        services_df: DataFrame = DataFrame(services)
         #
         # - Join the clients and subscriptions DataFrame to the services
         #       DataFrame
-        clients_subscriptions_services_df: DataFrame = merge(
-            clients_subscriptions_df, services_df, how="inner", on="service"
+        clients_services: DataFrame = merge(
+            clients_subs_df, services_df, how="inner", on="service"
         )
         #
         # Calculate the total charges
         #
         # Group the DataFrame by client and get the total charges
         grouped_clients_services_dfgb: DataFrameGroupBy = (
-            clients_subscriptions_services_df.groupby("client")
+            clients_services.groupby("client")
             .agg({'quarterly': "first", 'price': "sum"}))
         #
         # Convert the DataFrameGroupBy object to a DataFrame
         grouped_clients_services: DataFrame = (grouped_clients_services_dfgb
                                                .reset_index())
         #
-        # If client is quartely then the price should be multiplied by 3
+        # If client is quarterly then the price should be multiplied by 3
         grouped_clients_services.loc[
-            grouped_clients_services["quarterly"] == 1, "price"] = \
-            grouped_clients_services["price"] * 3
+            grouped_clients_services["quarterly"] == 1, "price"
+        ] = grouped_clients_services["price"] * 3
 
         return grouped_clients_services
 
@@ -431,3 +431,5 @@ class Service(Client):
 client = Service()
 cl = client.get_subscriptions()
 print("f")
+
+# 73, 18, 2 not in Netbeans
