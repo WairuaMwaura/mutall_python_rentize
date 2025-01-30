@@ -79,10 +79,6 @@ class Rentize:
 
 
 #
-# # Variable dates
-
-
-#
 # Define a class that encapsulates all the clients to be invoiced this month
 class Client:
     #

@@ -2,7 +2,7 @@
 
 ## Exporting python modules.
 
-- To export this project's modules to a file use the code below.
+- To export this project's modules to a file ```requirements.txt``` in this case, use the code below.
 ```python
     pip freeze > requirements.txt
 ```
