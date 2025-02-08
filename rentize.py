@@ -100,6 +100,8 @@ class Client:
         kasa.execute(
             """
             with
+                #
+                # Select all valid agreements
                 valid_agreement as (
                     select distinct
                         client,
@@ -114,15 +116,64 @@ class Client:
                         and `terminated` is null
                     group by
                         client
+                ),
+                #
+                # Select all clients with valid agreements
+                valid_clients as (
+                    select
+                        client.client,
+                        client.name as client_name,
+                        client.quarterly,
+                        valid_agreement.start_date
+                    from
+                        client
+                        inner join valid_agreement on valid_agreement.client = client.client
+                ),
+                #
+                # all rooms with water connection
+                connected_rooms as (
+                    select
+                        wconnection.wconnection,
+                        room.room
+                    from
+                        wconnection
+                        left join room on wconnection.room = room.room
+                ),
+                #
+                # all clients with water connection
+                connected_clients as (
+                    select
+                        connected_rooms.*,
+                        agreement.client,
+                        agreement.terminated,
+                        agreement.valid,
+                        agreement.start_date
+                    from
+                        connected_rooms
+                        left join agreement on agreement.room = connected_rooms.room
+                ),
+                #
+                # all valid clients with or without water connection
+                        valid_connected_clients as (
+                            select
+                                valid_clients.*,
+                                connected_clients.wconnection
+                            from
+                                valid_clients
+                                left join connected_clients on connected_clients.client = valid_clients.client
                 )
-            select
-                client.client,
-                client.name as client_name,
-                client.quarterly,
-                valid_agreement.start_date
-            from
-                client
-                inner join valid_agreement on valid_agreement.client = client.client
+                #
+                # show number of water connections for each client
+                select 
+                    client, 
+                    client_name, 
+                    quarterly, 
+                    start_date, 
+                    count(wconnection) AS connection_count
+                from
+                    valid_connected_clients
+                group by
+                    client, client_name, quarterly, start_date;
             """
         )
         #
@@ -166,6 +217,12 @@ class Client:
             & (active_clients_df['month_difference'] % 3 != 0),
             'factor'
         ] = 0
+        #
+        # Filter DataFrame columns to show
+        active_clients_df: DataFrame = active_clients_df[
+            ['year', 'month', 'client', 'client_name', 'quarterly', 'factor',
+             'connection_count']
+        ]
 
         return active_clients_df
 
