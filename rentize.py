@@ -477,12 +477,13 @@ class Service(Client):
         subs: list[dict] = kasa.fetchall()
         subs_df: DataFrame = DataFrame(subs)
         #
-        # - Join the clients to invoice and Subscriptions DataFrames
-        clients_subs_df: DataFrame = merge(
-            self.client, subs_df, how="inner", on="client"
+        # - Join the clients to Subscriptions DataFrame
+        clients_subs_df: DataFrame = self.client.merge(
+            subs_df, on="client", how="left"
         )
+
         #
-        # Get the services for each client
+        # Get the subscribed services for each client
         # - Get the services
         kasa.execute("select service, name, price from service")
         services: list[dict] = kasa.fetchall()
@@ -490,8 +491,8 @@ class Service(Client):
         #
         # - Join the clients and subscriptions DataFrame to the services
         #       DataFrame
-        clients_services_df: DataFrame = merge(
-            clients_subs_df, services_df, how="inner", on="service"
+        clients_services_df: DataFrame = clients_subs_df.merge(
+            services_df, how="left", on="service"
         )
         #
         # Rename column names in DataFrame
@@ -502,6 +503,12 @@ class Service(Client):
             }
         )
         #
+        # If client is connected to water then the water service charge is zero
+        clients_services_df.loc[
+            (clients_services_df["service_name"] == "water")
+            & (clients_services_df["connection_count"] > 0), "service_price"
+        ] = 0
+        #
         # Add amount column for each client service
         clients_services_df['amount'] = (
                 clients_services_df['service_price']
@@ -509,10 +516,10 @@ class Service(Client):
         )
         #
         # Reorder columns in DataFrame
-        clients_services_df = clients_services_df[[
-            'year', 'month', 'client', 'client_name', 'quarterly',
-            'service_name', 'service_price', 'factor', 'amount'
-        ]]
+        clients_services_df = clients_services_df[
+            ['year', 'month', 'client', 'client_name', 'quarterly', 'factor',
+            'connection_count','service_name', 'service_price', 'amount']
+        ]
         #
         # Replace NaN values with default value of zero and remove decimals from
         #   service price and amount columns
@@ -546,6 +553,11 @@ class Service(Client):
                 'price': 'service_price',
             }
         )
+        # If client is connected to water then the water service charge is zero
+        auto_clients_df.loc[
+            (auto_clients_df["service_name"] == "water")
+            & (auto_clients_df["connection_count"] > 0), "service_price"
+        ] = 0
         #
         # Add amount column for each client auto service
         auto_clients_df['amount'] = (
@@ -554,11 +566,10 @@ class Service(Client):
         )
         #
         # Reorder columns in DataFrame
-        auto_clients_df = auto_clients_df[[
-            'year', 'month', 'client', 'client_name', 'quarterly',
-            'service_name',
-            'service_price', 'factor', 'amount'
-        ]]
+        auto_clients_df = auto_clients_df[
+            ['year', 'month', 'client', 'client_name', 'quarterly', 'factor',
+            'connection_count', 'service_name', 'service_price', 'amount']
+        ]
         #
         # Replace NaN values with default value of zero and remove decimals from
         #   service price and amount columns
