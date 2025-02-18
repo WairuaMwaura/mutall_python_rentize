@@ -470,10 +470,10 @@ class Service(Client):
 
     #
     # Get the subscriptions and service charges for each client
-    def get_subscriptions(self) -> DataFrame:
+    def get_subscribed_services(self) -> DataFrame:
         #
         # Get all subscriptions for each client
-        kasa.execute("select client, subscription, service from subscription")
+        kasa.execute("select * from subscription")
         subs: list[dict] = kasa.fetchall()
         subs_df: DataFrame = DataFrame(subs)
         #
@@ -485,7 +485,7 @@ class Service(Client):
         #
         # Get the subscribed services for each client
         # - Get the services
-        kasa.execute("select service, name, price from service")
+        kasa.execute("select * from service")
         services: list[dict] = kasa.fetchall()
         services_df: DataFrame = DataFrame(services)
         #
@@ -500,8 +500,12 @@ class Service(Client):
             columns={
                 'name': 'service_name',
                 'price': 'service_price',
+                'amount': 'negotiated_price'
             }
         )
+        #
+        # Get the actual price based on negotiated price or service price
+        clients_services_df['actual_price'] = clients_services_df['negotiated_price'].fillna(clients_services_df['service_price'])
         #
         # If client is connected to water then the water service charge is zero
         clients_services_df.loc[
@@ -509,27 +513,30 @@ class Service(Client):
             & (clients_services_df["connection_count"] > 0), "service_price"
         ] = 0
         #
-        # Add amount column for each client service
-        clients_services_df['amount'] = (
-                clients_services_df['service_price']
+        # Add calculated amount column for each client's subscribed service
+        clients_services_df['calculated_amount'] = (
+                clients_services_df['actual_price']
                 * clients_services_df['factor']
         )
         #
         # Reorder columns in DataFrame
         clients_services_df = clients_services_df[
             ['year', 'month', 'client', 'client_name', 'quarterly', 'factor',
-            'connection_count','service_name', 'service_price', 'amount']
+            'connection_count','service_name', 'service_price',
+             'negotiated_price', 'calculated_amount']
         ]
         #
         # Replace NaN values with default value of zero and remove decimals from
-        #   service price and amount columns
+        #   service price, negotiated price, and calculated amount columns
         clients_services_df['service_price'] = clients_services_df[
             'service_price'
         ].fillna(0).astype(int)
-        clients_services_df['amount'] = clients_services_df[
-            'amount'
+        clients_services_df['calculated_amount'] = clients_services_df[
+            'calculated_amount'
         ].fillna(0).astype(int)
-
+        clients_services_df['negotiated_price'] = clients_services_df[
+            'negotiated_price'
+        ].fillna(0).astype(int)
         return clients_services_df
 
     #
