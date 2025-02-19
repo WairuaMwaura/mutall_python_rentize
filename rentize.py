@@ -553,38 +553,62 @@ class Service(Client):
             how='cross'
         )
         #
+        # Merge client and service DataFrame to Subscription DataFrame
+        kasa.execute("select * from subscription")
+        subs: list[dict] = kasa.fetchall()
+        subs_df: DataFrame = DataFrame(subs)
+        #
+        # - Join the clients and subscriptions DataFrame to the services
+        #       DataFrame
+        auto_clients_services_df: DataFrame = auto_clients_df.merge(
+            subs_df, how="left", on="client"
+        )
+        #
+        # Remove duplicates
+        auto_clients_services_df = auto_clients_services_df.drop_duplicates(
+            subset=["client", "service_x"])
+        #
         # Rename column names in DataFrame
-        auto_clients_df = auto_clients_df.rename(
+        auto_clients_services_df = auto_clients_services_df.rename(
             columns={
                 'name': 'service_name',
                 'price': 'service_price',
+                'amount': 'negotiated_price'
             }
         )
+        #
+        # Get the actual price based on negotiated price or service price
+        auto_clients_services_df['actual_price'] = auto_clients_services_df[
+            'negotiated_price'].fillna(auto_clients_services_df['service_price'])
+        #
         # If client is connected to water then the water service charge is zero
-        auto_clients_df.loc[
-            (auto_clients_df["service_name"] == "water")
-            & (auto_clients_df["connection_count"] > 0), "service_price"
+        auto_clients_services_df.loc[
+            (auto_clients_services_df["service_name"] == "water")
+            & (auto_clients_services_df["connection_count"] > 0), "service_price"
         ] = 0
         #
-        # Add amount column for each client auto service
-        auto_clients_df['amount'] = (
-                auto_clients_df['service_price']
-                * auto_clients_df['factor']
+        # Add calculated amount column for each client's subscribed service
+        auto_clients_services_df['calculated_amount'] = (
+                auto_clients_services_df['actual_price']
+                * auto_clients_services_df['factor']
         )
         #
         # Reorder columns in DataFrame
-        auto_clients_df = auto_clients_df[
+        auto_clients_services_df = auto_clients_services_df[
             ['year', 'month', 'client', 'client_name', 'quarterly', 'factor',
-            'connection_count', 'service_name', 'service_price', 'amount']
+             'connection_count', 'service_name', 'service_price',
+             'negotiated_price', 'calculated_amount']
         ]
         #
         # Replace NaN values with default value of zero and remove decimals from
-        #   service price and amount columns
-        auto_clients_df['service_price'] = auto_clients_df[
+        #   service price, negotiated price, and calculated amount columns
+        auto_clients_services_df['service_price'] = auto_clients_services_df[
             'service_price'
         ].fillna(0).astype(int)
-        auto_clients_df['amount'] = auto_clients_df[
-            'amount'
+        auto_clients_services_df['calculated_amount'] = auto_clients_services_df[
+            'calculated_amount'
         ].fillna(0).astype(int)
-
-        return auto_clients_df
+        auto_clients_services_df['negotiated_price'] = auto_clients_services_df[
+            'negotiated_price'
+        ].fillna(0).astype(int)
+        return auto_clients_services_df
