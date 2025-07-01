@@ -79,6 +79,10 @@ class Rentize:
 
 
 #
+# # Variable dates
+
+
+#
 # Define a class that encapsulates all the clients to be invoiced this month
 class Client:
     #
@@ -100,8 +104,6 @@ class Client:
         kasa.execute(
             """
             with
-                #
-                # Select all valid agreements
                 valid_agreement as (
                     select distinct
                         client,
@@ -116,64 +118,15 @@ class Client:
                         and `terminated` is null
                     group by
                         client
-                ),
-                #
-                # Select all clients with valid agreements
-                valid_clients as (
-                    select
-                        client.client,
-                        client.name as client_name,
-                        client.quarterly,
-                        valid_agreement.start_date
-                    from
-                        client
-                        inner join valid_agreement on valid_agreement.client = client.client
-                ),
-                #
-                # all rooms with water connection
-                connected_rooms as (
-                    select
-                        wconnection.wconnection,
-                        room.room
-                    from
-                        wconnection
-                        left join room on wconnection.room = room.room
-                ),
-                #
-                # all clients with water connection
-                connected_clients as (
-                    select
-                        connected_rooms.*,
-                        agreement.client,
-                        agreement.terminated,
-                        agreement.valid,
-                        agreement.start_date
-                    from
-                        connected_rooms
-                        left join agreement on agreement.room = connected_rooms.room
-                ),
-                #
-                # all valid clients with or without water connection
-                        valid_connected_clients as (
-                            select
-                                valid_clients.*,
-                                connected_clients.wconnection
-                            from
-                                valid_clients
-                                left join connected_clients on connected_clients.client = valid_clients.client
                 )
-                #
-                # show number of water connections for each client
-                select 
-                    client, 
-                    client_name, 
-                    quarterly, 
-                    start_date, 
-                    count(wconnection) AS connection_count
-                from
-                    valid_connected_clients
-                group by
-                    client, client_name, quarterly, start_date;
+            select
+                client.client,
+                client.name as client_name,
+                client.quarterly,
+                valid_agreement.start_date
+            from
+                client
+                inner join valid_agreement on valid_agreement.client = client.client
             """
         )
         #
@@ -217,12 +170,6 @@ class Client:
             & (active_clients_df['month_difference'] % 3 != 0),
             'factor'
         ] = 0
-        #
-        # Filter DataFrame columns to show
-        active_clients_df: DataFrame = active_clients_df[
-            ['year', 'month', 'client', 'client_name', 'quarterly', 'factor',
-             'connection_count']
-        ]
 
         return active_clients_df
 
@@ -470,29 +417,28 @@ class Service(Client):
 
     #
     # Get the subscriptions and service charges for each client
-    def get_subscribed_services(self) -> DataFrame:
+    def get_subscriptions(self) -> DataFrame:
         #
         # Get all subscriptions for each client
-        kasa.execute("select * from subscription")
+        kasa.execute("select client, subscription, service from subscription")
         subs: list[dict] = kasa.fetchall()
         subs_df: DataFrame = DataFrame(subs)
         #
-        # - Join the clients to Subscriptions DataFrame
-        clients_subs_df: DataFrame = self.client.merge(
-            subs_df, on="client", how="left"
+        # - Join the clients to invoice and Subscriptions DataFrames
+        clients_subs_df: DataFrame = merge(
+            self.client, subs_df, how="inner", on="client"
         )
-
         #
-        # Get the subscribed services for each client
+        # Get the services for each client
         # - Get the services
-        kasa.execute("select * from service")
+        kasa.execute("select service, name, price from service")
         services: list[dict] = kasa.fetchall()
         services_df: DataFrame = DataFrame(services)
         #
         # - Join the clients and subscriptions DataFrame to the services
         #       DataFrame
-        clients_services_df: DataFrame = clients_subs_df.merge(
-            services_df, how="left", on="service"
+        clients_services_df: DataFrame = merge(
+            clients_subs_df, services_df, how="inner", on="service"
         )
         #
         # Rename column names in DataFrame
@@ -500,43 +446,30 @@ class Service(Client):
             columns={
                 'name': 'service_name',
                 'price': 'service_price',
-                'amount': 'negotiated_price'
             }
         )
         #
-        # Get the actual price based on negotiated price or service price
-        clients_services_df['actual_price'] = clients_services_df['negotiated_price'].fillna(clients_services_df['service_price'])
-        #
-        # If client is connected to water then the water service charge is zero
-        clients_services_df.loc[
-            (clients_services_df["service_name"] == "water")
-            & (clients_services_df["connection_count"] > 0), "service_price"
-        ] = 0
-        #
-        # Add calculated amount column for each client's subscribed service
-        clients_services_df['calculated_amount'] = (
-                clients_services_df['actual_price']
+        # Add amount column for each client service
+        clients_services_df['amount'] = (
+                clients_services_df['service_price']
                 * clients_services_df['factor']
         )
         #
         # Reorder columns in DataFrame
-        clients_services_df = clients_services_df[
-            ['year', 'month', 'client', 'client_name', 'quarterly', 'factor',
-            'connection_count','service_name', 'service_price',
-             'negotiated_price', 'calculated_amount']
-        ]
+        clients_services_df = clients_services_df[[
+            'year', 'month', 'client', 'client_name', 'quarterly',
+            'service_name', 'service_price', 'factor', 'amount'
+        ]]
         #
         # Replace NaN values with default value of zero and remove decimals from
-        #   service price, negotiated price, and calculated amount columns
+        #   service price and amount columns
         clients_services_df['service_price'] = clients_services_df[
             'service_price'
         ].fillna(0).astype(int)
-        clients_services_df['calculated_amount'] = clients_services_df[
-            'calculated_amount'
+        clients_services_df['amount'] = clients_services_df[
+            'amount'
         ].fillna(0).astype(int)
-        clients_services_df['negotiated_price'] = clients_services_df[
-            'negotiated_price'
-        ].fillna(0).astype(int)
+
         return clients_services_df
 
     #
@@ -553,62 +486,34 @@ class Service(Client):
             how='cross'
         )
         #
-        # Merge client and service DataFrame to Subscription DataFrame
-        kasa.execute("select * from subscription")
-        subs: list[dict] = kasa.fetchall()
-        subs_df: DataFrame = DataFrame(subs)
-        #
-        # - Join the clients and subscriptions DataFrame to the services
-        #       DataFrame
-        auto_clients_services_df: DataFrame = auto_clients_df.merge(
-            subs_df, how="left", on="client"
-        )
-        #
-        # Remove duplicates
-        auto_clients_services_df = auto_clients_services_df.drop_duplicates(
-            subset=["client", "service_x"])
-        #
         # Rename column names in DataFrame
-        auto_clients_services_df = auto_clients_services_df.rename(
+        auto_clients_df = auto_clients_df.rename(
             columns={
                 'name': 'service_name',
                 'price': 'service_price',
-                'amount': 'negotiated_price'
             }
         )
         #
-        # Get the actual price based on negotiated price or service price
-        auto_clients_services_df['actual_price'] = auto_clients_services_df[
-            'negotiated_price'].fillna(auto_clients_services_df['service_price'])
-        #
-        # If client is connected to water then the water service charge is zero
-        auto_clients_services_df.loc[
-            (auto_clients_services_df["service_name"] == "water")
-            & (auto_clients_services_df["connection_count"] > 0), "service_price"
-        ] = 0
-        #
-        # Add calculated amount column for each client's subscribed service
-        auto_clients_services_df['calculated_amount'] = (
-                auto_clients_services_df['actual_price']
-                * auto_clients_services_df['factor']
+        # Add amount column for each client auto service
+        auto_clients_df['amount'] = (
+                auto_clients_df['service_price']
+                * auto_clients_df['factor']
         )
         #
         # Reorder columns in DataFrame
-        auto_clients_services_df = auto_clients_services_df[
-            ['year', 'month', 'client', 'client_name', 'quarterly', 'factor',
-             'connection_count', 'service_name', 'service_price',
-             'negotiated_price', 'calculated_amount']
-        ]
+        auto_clients_df = auto_clients_df[[
+            'year', 'month', 'client', 'client_name', 'quarterly',
+            'service_name',
+            'service_price', 'factor', 'amount'
+        ]]
         #
         # Replace NaN values with default value of zero and remove decimals from
-        #   service price, negotiated price, and calculated amount columns
-        auto_clients_services_df['service_price'] = auto_clients_services_df[
+        #   service price and amount columns
+        auto_clients_df['service_price'] = auto_clients_df[
             'service_price'
         ].fillna(0).astype(int)
-        auto_clients_services_df['calculated_amount'] = auto_clients_services_df[
-            'calculated_amount'
+        auto_clients_df['amount'] = auto_clients_df[
+            'amount'
         ].fillna(0).astype(int)
-        auto_clients_services_df['negotiated_price'] = auto_clients_services_df[
-            'negotiated_price'
-        ].fillna(0).astype(int)
-        return auto_clients_services_df
+
+        return auto_clients_df

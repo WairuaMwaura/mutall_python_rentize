@@ -5,7 +5,7 @@ from rentize import Rentize
 
 rental = Rentize(11, 2024)
 client = rental.client.get_active_clients()
-subscribed_services = rental.service.get_subscribed_services()
+services = rental.service.get_subscriptions()
 auto_services = rental.service.get_auto_services()
 
 print('f')

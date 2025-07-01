@@ -1,0 +1,33 @@
+@startuml
+class Rentize {
+    show_client()
+    show_service()
+    show_auto_service()
+        month
+    year
+    client
+    service
+    __init__()
+}
+class Client {
+    get_active_clients()
+        month
+    year
+    specified_date
+    __init__()
+}
+class Water {
+    get_current_readings()
+    get_previous_readings()
+    get_calculations()
+        __init__()
+}
+class Service {
+    get_subscribed_services()
+    get_auto_services()
+        client : DataFrame 
+    __init__(client: DataFrame )
+}
+Client <|-- Service
+Service --> DataFrame
+@enduml

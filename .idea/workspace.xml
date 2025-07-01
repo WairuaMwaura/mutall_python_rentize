@@ -4,10 +4,15 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4f321865-4a83-4942-85f8-968f8d4ae92a" name="Changes" comment="Mainstream MYSQL projects using Python">
-      <change afterPath="$PROJECT_DIR$/services.py" afterDir="false" />
+    <list default="true" id="14fab7f3-5525-4c94-9e7e-f9f66bdcc996" name="Changes" comment="add service feature class">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/replicate_sql.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/water.py" beforeDir="false" afterPath="$PROJECT_DIR$/water.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rentize.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -17,12 +22,14 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
+        <option value="Python Unit Test" />
         <option value="Python Script" />
       </list>
     </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="ROOT_SYNC" value="SYNC" />
   </component>
   <component name="GitHubPullRequestSearchHistory">{
   &quot;lastFilter&quot;: {
@@ -36,97 +43,43 @@
     &quot;accountId&quot;: &quot;b15ff28e-8aa1-4cee-9e6c-3f0f13e6906b&quot;
   }
 }</component>
-  <component name="ProblemsViewState">
-    <option name="selectedTabId" value="CurrentFile" />
-  </component>
   <component name="ProjectColorInfo">{
-  &quot;associatedIndex&quot;: 7
+  &quot;associatedIndex&quot;: 8
 }</component>
-  <component name="ProjectId" id="2o1tR2dGGraYp6eehJmbS68pVHS" />
-  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectId" id="2remNdgisFycEwFW1mR2nohazK0" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
+    <option name="showMembers" value="true" />
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
-    "Python tests.Doctests in base.executor": "Debug",
-    "Python tests.Doctests in generic.executor": "Debug",
-    "Python.Admin.executor": "Debug",
-    "Python.left_joins.executor": "Debug",
-    "Python.main.executor": "Run",
+    "ASKED_MARK_IGNORED_FILES_AS_EXCLUDED": "true",
+    "DefaultPlantUmlFileTemplate": "UML Class",
+    "Python tests.Doctest via pytest in accessors.py.executor": "Run",
+    "Python.api.executor": "Run",
+    "Python.app.executor": "Debug",
+    "Python.auto-services.executor": "Debug",
+    "Python.nyumba.executor": "Debug",
+    "Python.rentize.executor": "Debug",
+    "Python.rentize_copy.executor": "Debug",
     "Python.services.executor": "Debug",
-    "Python.test.executor": "Debug",
-    "Python.water.executor": "Debug",
-    "Python.water2.executor": "Run",
-    "Python.wconnection_amount.executor": "Debug",
-    "Python.wconnection_readings.executor": "Debug",
-    "Python.wmeter_readings.executor": "Debug",
+    "Python.tree.executor": "Run",
+    "Python.water.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "main",
-    "last_opened_file_path": "D:/mutall_projects/python_mainstream_2/v/code/replicate_sql",
-    "settings.editor.selected.configurable": "reference.settingsdialog.project.grazie"
+    "ignore.virus.scanning.warn.message": "true",
+    "last_opened_file_path": "D:/mutall_projects/nyumba/v/presentation_backup",
+    "settings.editor.selected.configurable": "preferences.pluginManager"
   }
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
-      <recent name="D:\mutall_projects\python_mainstream_2\v\code\replicate_sql" />
+      <recent name="D:\mutall_projects\nyumba\v\presentation_backup" />
+      <recent name="D:\mutall_projects\nyumba" />
+      <recent name="D:\mutall_projects\nyumba\v\code" />
+      <recent name="D:\mutall_projects\nyumba\v\lab" />
     </key>
-    <key name="MoveFile.RECENT_KEYS">
-      <recent name="D:\mutall_projects\python_mainstream_2\v\code\replicate_sql\tests" />
-    </key>
-  </component>
-  <component name="RunManager">
-    <configuration name="wconnection_readings" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="replicate_sql" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/wconnection_readings.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="wmeter_readings" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="replicate_sql" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/wmeter_readings.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <recent_temporary>
-      <list>
-        <item itemvalue="Python.wconnection_readings" />
-        <item itemvalue="Python.wmeter_readings" />
-      </list>
-    </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
@@ -138,29 +91,21 @@
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="4f321865-4a83-4942-85f8-968f8d4ae92a" name="Changes" comment="" />
-      <created>1730048897731</created>
+      <changelist id="14fab7f3-5525-4c94-9e7e-f9f66bdcc996" name="Changes" comment="" />
+      <created>1736927878536</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1730048897731</updated>
+      <updated>1736927878536</updated>
     </task>
-    <task id="LOCAL-00001" summary="Mainstream MYSQL projects using Python">
+    <task id="LOCAL-00001" summary="add service feature class">
       <option name="closed" value="true" />
-      <created>1732023542616</created>
+      <created>1738070545779</created>
       <option name="number" value="00001" />
       <option name="presentableId" value="LOCAL-00001" />
       <option name="project" value="LOCAL" />
-      <updated>1732023542616</updated>
+      <updated>1738070545779</updated>
     </task>
-    <task id="LOCAL-00002" summary="Mainstream MYSQL projects using Python">
-      <option name="closed" value="true" />
-      <created>1732127797515</created>
-      <option name="number" value="00002" />
-      <option name="presentableId" value="LOCAL-00002" />
-      <option name="project" value="LOCAL" />
-      <updated>1732127797515</updated>
-    </task>
-    <option name="localTasksCounter" value="3" />
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -174,7 +119,7 @@
                   <entry key="branch">
                     <value>
                       <list>
-                        <option value="main" />
+                        <option value="HEAD" />
                       </list>
                     </value>
                   </entry>
@@ -187,59 +132,40 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Mainstream MYSQL projects using Python" />
-    <option name="LAST_COMMIT_MESSAGE" value="Mainstream MYSQL projects using Python" />
+    <MESSAGE value="add service feature class" />
+    <option name="LAST_COMMIT_MESSAGE" value="add service feature class" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/tests/left_joins.py</url>
-          <line>231</line>
-          <option name="timeStamp" value="40" />
+          <url>file://$PROJECT_DIR$/v1/lab/water.py</url>
+          <line>286</line>
+          <option name="timeStamp" value="6" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/wconnection_readings.py</url>
-          <line>191</line>
-          <option name="timeStamp" value="42" />
+          <url>file://$PROJECT_DIR$/v1/lab/auto-services.py</url>
+          <line>268</line>
+          <option name="timeStamp" value="13" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/tests/left_joins.py</url>
-          <line>26</line>
-          <option name="timeStamp" value="43" />
+          <url>file://$PROJECT_DIR$/v1/code/app.py</url>
+          <line>17</line>
+          <option name="timeStamp" value="22" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/wconnection_amount.py</url>
-          <line>243</line>
-          <option name="timeStamp" value="49" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/tests/admin.py</url>
-          <line>58</line>
-          <option name="timeStamp" value="50" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/water.py</url>
-          <line>431</line>
-          <option name="timeStamp" value="51" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/tests/test.py</url>
-          <line>148</line>
-          <option name="timeStamp" value="52" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/services.py</url>
-          <line>180</line>
-          <option name="timeStamp" value="53" />
+          <url>file://$PROJECT_DIR$/v/code/app.py</url>
+          <line>33</line>
+          <option name="timeStamp" value="28" />
         </line-breakpoint>
       </breakpoints>
+      <default-breakpoints>
+        <breakpoint type="python-exception">
+          <properties notifyOnTerminate="true" exception="BaseException">
+            <option name="notifyOnTerminate" value="true" />
+          </properties>
+        </breakpoint>
+      </default-breakpoints>
     </breakpoint-manager>
-    <watches-manager>
-      <configuration name="PythonConfigurationType">
-        <watch expression="__exception__" language="Python" />
-        <watch expression="__exception__" />
-      </configuration>
-    </watches-manager>
   </component>
 </project>
