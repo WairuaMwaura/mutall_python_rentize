@@ -1,6 +1,6 @@
 #
 # Import classes
-from rentize import Client, Service, Water, Charges
+from rentize import Client, Service, Water, Charges, Rent
 #
 # Date Variables
 month = 2
@@ -29,6 +29,9 @@ curr_water_rds = Water(client).get_current_readings()
 #
 # Get previous water readings based on the variable date at the top
 prev_water_rds = Water(client).get_previous_readings()
-
+#
+# Instantiate Rent class
+rent = Rent(client)
+rent_p = rent.get_rental_charges()
 
 print('finished')

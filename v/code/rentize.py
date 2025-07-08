@@ -226,8 +226,9 @@ class Water(Service):
     def get_current_readings(self) -> DataFrame:
         #
         # Get all water readings for each water connection
-        # - Get all water connections
-        # Execute query on database
+        # 1. Get all active water connections and the clients they are connected
+        #   to
+        # Execute query on database to get all water connections
         kasa.execute(
             """
                 select
@@ -257,7 +258,7 @@ class Water(Service):
         active_water_connections_df: DataFrame = clients_water_connections_df[
             clients_water_connections_df['end_date'] == filter_date]
         #
-        # - Get all water meters
+        # 2. Get all water meters
         # Execute query DB for all water meters
         kasa.execute("select * from wmeter")
         #
@@ -267,7 +268,7 @@ class Water(Service):
         # Create dataframe of water meters using Pandas
         water_meters_df: DataFrame = DataFrame(all_water_meters)
         #
-        # - Get all water readings
+        # 3. Get all water readings for each meter
         # Execute query DB for all water readings
         kasa.execute("select * from wreading")
         #
@@ -280,14 +281,14 @@ class Water(Service):
         # - Join dataframes for active water connection, water meter, and water
         # reading tables
         #
-        # Join the active water connections dataframe to the water
-        # meters dataframe
+        # 1. Join the active water connections dataframe to the water
+        #   meters dataframe
         water_connections_and_meters_df: DataFrame = merge(
             active_water_connections_df, water_meters_df, on='wmeter',
             how='inner'
         )
-        # Join the active water connections and water meters dataframe
-        # to the water readings dataframe
+        # 2. Join the active water connections and water meters dataframe
+        #   to the water readings dataframe
         all_water_connection_readings: DataFrame = merge(
             water_connections_and_meters_df,
             water_readings_df,
@@ -301,18 +302,19 @@ class Water(Service):
         all_water_connection_readings['date'] = pd.to_datetime(
             all_water_connection_readings['date']
         )
-        # Filter the readings to only include those for the specified month and year
+        # Filter the readings to only include those for the specified month and
+        #   year
         filtered_df = all_water_connection_readings[
             (all_water_connection_readings['date'].dt.month == self.client.month) &
             (all_water_connection_readings['date'].dt.year == self.client.year)
             ]
-
+        #
         # Group the filtered data by water connection
         grouped_water_connections_df = filtered_df.groupby('wconnection')
-
+        #
         # Get index of the latest reading (max date) for each water connection
         max_dates_indices = grouped_water_connections_df['date'].idxmax()
-
+        #
         # Use .loc to get the rows that match those indices
         latest_readings_df = filtered_df.loc[max_dates_indices]
         #
@@ -320,6 +322,7 @@ class Water(Service):
         latest_readings_df: DataFrame = latest_readings_df[
             ['client_name', 'wconnection', 'serial_no', 'rate', 'date', 'value']
         ]
+        #
         # Rename column names
         latest_readings_df: DataFrame = latest_readings_df.rename(
             columns={
@@ -327,6 +330,12 @@ class Water(Service):
                 'value': 'curr_value'
             }
         )
+        #
+        # Truncate extra decimals from rate and curr_value columns
+        latest_readings_df['rate'] = (latest_readings_df['rate']
+                                      .astype(int))
+        latest_readings_df['curr_value'] = (latest_readings_df['curr_value']
+                                            .round(2))
         return latest_readings_df
 
     #
@@ -423,7 +432,7 @@ class Charges(Service):
         # Call the constructor method of the parent class (Service class)
         super().__init__(client)
     #
-    # Get the subscriptions and utility charges for each client
+    # Get the utility subscriptions charges for each client
     def get_subscribed_charges(self) -> DataFrame:
         #
         # Get all subscriptions for each client
@@ -435,9 +444,8 @@ class Charges(Service):
         clients_subs_df: DataFrame = self.client.get_active_clients().merge(
             subs_df, on="client", how="left"
         )
-
         #
-        # Get the subscribed services for each client
+        # Get the subscribed utility name and price for each client
         # - Get the services
         kasa.execute("select * from service")
         services: list[dict] = kasa.fetchall()
@@ -449,7 +457,8 @@ class Charges(Service):
             services_df, how="left", on="service"
         )
         #
-        # Rename column names in DataFrame
+        # Rename column names in DataFrame (i.e., amount column in subscription
+        #   table is the negotiated price of the utility)
         clients_services_df = clients_services_df.rename(
             columns={
                 'name': 'service_name',
@@ -458,7 +467,9 @@ class Charges(Service):
             }
         )
         #
-        # Get the actual price based on negotiated price or service price
+        # Get the actual price based on negotiated price or service price (i.e.,
+        #   If the negotiated_price is missing (NaN), use the service_price
+        #   instead and save that as a new column called actual_price)
         clients_services_df['actual_price'] = clients_services_df['negotiated_price'].fillna(clients_services_df['service_price'])
         #
         # If client is connected to water then the water service charge is zero
@@ -566,3 +577,112 @@ class Charges(Service):
             'negotiated_price'
         ].fillna(0).astype(int)
         return auto_clients_charges_df
+
+
+#
+# Define a class that encapsulates rent charges for each client
+class Rent(Service):
+    def __init__(self, client):
+        super().__init__(client)
+
+    #
+    # Get the report period (i.e., the first day of the month| day after the
+    #   cutoff period and the last day of the month or the cutoff period).
+    def get_rental_charges(self):
+        #
+        # Get start period based on variable date
+        kasa.execute(
+            """
+                select
+                    cutoff as start_period
+                from
+                    `period`
+                where
+                    `period`.`year` = %s
+                    and `period`.`month` = %s
+            """
+            , (self.client.year, self.client.month - 1)
+        )
+        start_period: list[dict] = kasa.fetchall()
+        start_period_df: DataFrame = DataFrame(start_period)
+        #
+        # get end period based on variable date
+        kasa.execute(
+            """
+                select
+                    cutoff as end_period
+                from
+                    `period`
+                where
+                    `period`.`year` = %s
+                    and `period`.`month` = %s
+            """
+            , (self.client.year, self.client.month)
+        )
+        end_period: list[dict] = kasa.fetchall()
+        end_period_df: DataFrame = DataFrame(end_period)
+        #
+        # calculate difference in years to get period phase (normal period,
+        #   review period, renew period)
+        # 1. Select all agreements for valid clients
+        kasa.execute(
+            """
+            select
+                agreement.agreement,
+                agreement.client,
+                agreement.start_date,
+                agreement.duration,
+                agreement.review,
+                agreement.amount
+            from
+                agreement
+            """
+        )
+        agreements: list[dict] = kasa.fetchall()
+        agreements_df: DataFrame = DataFrame(agreements)
+        valid_agreements_df: DataFrame = agreements_df.merge(
+            self.client.get_active_clients(), on="client", how="right"
+        )
+        valid_agreements_df:DataFrame = valid_agreements_df.merge(
+            start_period_df, how="cross"
+        )
+        #
+        # 2. Get the difference in years between the agreememnt start date and
+        #   the start period date for the report
+        #
+        # Convert to datetime format
+        valid_agreements_df['start_date'] = pd.to_datetime(valid_agreements_df['start_date'])
+        valid_agreements_df['start_period'] = pd.to_datetime(valid_agreements_df['start_period'])
+        valid_agreements_df["day_difference"] = (valid_agreements_df["start_period"]
+                                             - valid_agreements_df["start_date"]
+                                             ).dt.total_seconds() / (60 * 60 * 24)
+        valid_agreements_df["year_diff"] = valid_agreements_df["day_difference"] / 365.25
+        #
+        # 3. Label each client based on the difference in years
+        #
+        # 3.1. If difference between agreement start date and start period is
+        #   less than the review years then it is the normal period phase
+        valid_agreements_df.loc[valid_agreements_df["year_diff"]
+                                < valid_agreements_df["review"], "phase"] = "normal"
+        #
+        # 3.2. If difference between agreement start date and start period is
+        #   less than or equal to the duration years and is greater or equal to
+        #   the review years then it is the review period phase
+        valid_agreements_df.loc[(valid_agreements_df["year_diff"]
+                                >= valid_agreements_df["review"]) & (valid_agreements_df["year_diff"] <= valid_agreements_df["duration"]), "phase"] = "review"
+        # 3.3. If difference between agreement start date and start period is
+        # #   greater than the duration years then it is the renew period phase
+        valid_agreements_df.loc[valid_agreements_df["year_diff"]
+                                > valid_agreements_df["duration"], "phase"] = "renew"
+        #
+        # Calculate the rent for each tenant based on their period phase
+        #
+        # If client is in normal period phase then rent is as per agreement
+        valid_agreements_df.loc[valid_agreements_df["phase"] == "normal", "rent_amount"] = valid_agreements_df["amount"] * valid_agreements_df["factor"]
+        #
+        # If client is in review period phase then rent is increased by 10%
+        valid_agreements_df.loc[valid_agreements_df["phase"] == "review", "rent_amount"] = valid_agreements_df["amount"] * 1.1 * valid_agreements_df["factor"]
+        #
+        # If client is in renew period phase then rent is increased by 20%
+        valid_agreements_df.loc[valid_agreements_df["phase"] == "renew", "rent_amount"] = valid_agreements_df["amount"] * 1.2 * valid_agreements_df["factor"]
+        return valid_agreements_df
