@@ -6,7 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="14fab7f3-5525-4c94-9e7e-f9f66bdcc996" name="Changes" comment="add service feature class">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/v/code/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/v/code/app.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/v/code/rentize.py" beforeDir="false" afterPath="$PROJECT_DIR$/v/code/rentize.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />

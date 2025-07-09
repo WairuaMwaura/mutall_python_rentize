@@ -630,6 +630,7 @@ class Rent(Service):
             select
                 agreement.agreement,
                 agreement.client,
+                agreement.room,
                 agreement.start_date,
                 agreement.duration,
                 agreement.review,
@@ -678,11 +679,27 @@ class Rent(Service):
         # Calculate the rent for each tenant based on their period phase
         #
         # If client is in normal period phase then rent is as per agreement
-        valid_agreements_df.loc[valid_agreements_df["phase"] == "normal", "rent_amount"] = valid_agreements_df["amount"] * valid_agreements_df["factor"]
+        valid_agreements_df.loc[valid_agreements_df["phase"] == "normal", "rent_charge"] = valid_agreements_df["amount"] * valid_agreements_df["factor"]
         #
         # If client is in review period phase then rent is increased by 10%
-        valid_agreements_df.loc[valid_agreements_df["phase"] == "review", "rent_amount"] = valid_agreements_df["amount"] * 1.1 * valid_agreements_df["factor"]
+        valid_agreements_df.loc[valid_agreements_df["phase"] == "review", "rent_charge"] = valid_agreements_df["amount"] * 1.1 * valid_agreements_df["factor"]
         #
         # If client is in renew period phase then rent is increased by 20%
-        valid_agreements_df.loc[valid_agreements_df["phase"] == "renew", "rent_amount"] = valid_agreements_df["amount"] * 1.2 * valid_agreements_df["factor"]
-        return valid_agreements_df
+        valid_agreements_df.loc[valid_agreements_df["phase"] == "renew", "rent_charge"] = valid_agreements_df["amount"] * 1.2 * valid_agreements_df["factor"]
+        #
+        # Remove null values and convert decimal values to integer
+        valid_agreements_df['amount'] = valid_agreements_df['amount'].fillna(0).astype(int)
+        valid_agreements_df["duration"] = valid_agreements_df["duration"].fillna(0).astype(int)
+        valid_agreements_df["rent_charge"] = valid_agreements_df["rent_charge"].fillna(0).astype(int)
+        #
+        # Remove time from date values
+        valid_agreements_df['start_date'] = to_datetime(valid_agreements_df['start_date']).dt.date
+        valid_agreements_df['start_period'] = to_datetime(valid_agreements_df['start_period']).dt.date
+        #
+        # Filter and reorder columns to display
+        filtered_valid_agreements_df: DataFrame = valid_agreements_df[
+            ['year', 'month', 'client', 'room', 'client_name', 'agreement', 'amount',
+             'quarterly', 'start_date', 'duration', 'review', 'factor',
+             'start_period', 'phase', 'rent_charge']
+        ]
+        return filtered_valid_agreements_df
