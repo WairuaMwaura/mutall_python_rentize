@@ -6,8 +6,7 @@ from mysql.connector import connect
 from mysql.connector.cursor import MySQLCursorDict
 import pandas as pd
 from mysql.connector.pooling import PooledMySQLConnection
-from pandas import DataFrame, merge, to_datetime
-from pandas.core.groupby.generic import DataFrameGroupBy
+from pandas import DataFrame, merge, to_datetime, Timedelta
 from datetime import date, datetime
 #
 # Set display options for pandas - to show all columns and full width
@@ -590,11 +589,11 @@ class Rent(Service):
     #   cutoff period and the last day of the month or the cutoff period).
     def get_rental_charges(self):
         #
-        # Get start period based on variable date
+        # Get previous period cutoff based on variable date
         kasa.execute(
             """
                 select
-                    cutoff as start_period
+                    cutoff as previous_month_cutoff
                 from
                     `period`
                 where
@@ -605,6 +604,17 @@ class Rent(Service):
         )
         start_period: list[dict] = kasa.fetchall()
         start_period_df: DataFrame = DataFrame(start_period)
+        #
+        # Get the next day after the previous period cutoff
+        start_period_df["previous_month_cutoff"] = to_datetime(
+            start_period_df["previous_month_cutoff"]
+            + Timedelta(days=1)
+        )
+        #
+        # Rename the previous period cutoff to start period
+        start_period_df: DataFrame = start_period_df.rename(
+            columns={ 'previous_month_cutoff': 'start_period' }
+        )
         #
         # get end period based on variable date
         kasa.execute(
@@ -637,6 +647,8 @@ class Rent(Service):
                 agreement.amount
             from
                 agreement
+            where
+                agreement.terminated is null
             """
         )
         agreements: list[dict] = kasa.fetchall()
@@ -644,9 +656,15 @@ class Rent(Service):
         valid_agreements_df: DataFrame = agreements_df.merge(
             self.client.get_active_clients(), on="client", how="right"
         )
+        #
+        # Add the start and end period columns
         valid_agreements_df:DataFrame = valid_agreements_df.merge(
             start_period_df, how="cross"
         )
+        valid_agreements_df:DataFrame = valid_agreements_df.merge(
+            end_period_df, how="cross"
+        )
+        #
         #
         # 2. Get the difference in years between the agreememnt start date and
         #   the start period date for the report
@@ -700,6 +718,103 @@ class Rent(Service):
         filtered_valid_agreements_df: DataFrame = valid_agreements_df[
             ['year', 'month', 'client', 'room', 'client_name', 'agreement', 'amount',
              'quarterly', 'start_date', 'duration', 'review', 'factor',
-             'start_period', 'phase', 'rent_charge']
+             'start_period', 'end_period', 'phase', 'rent_charge']
         ]
         return filtered_valid_agreements_df
+
+#
+# Define a class that encapsulates electricity charges for each client
+#
+# Define a class that encapsulates electricity charges for each client
+#
+class Electricity(Service):
+    def __init__(self, client: Client):
+        super().__init__(client)
+
+    #
+    # Get current electricity readings for each meter
+    def get_current_readings(self) -> DataFrame:
+        # 1. Get all active electricity meters linked to clients
+        kasa.execute(
+            """
+            select
+                econnection.econnection,
+                econnection.room,
+                econnection.emeter,
+                econnection.share,
+                emeter.new_num_2023_03 as 'emeter_num',
+                agreement.client
+            from
+                econnection
+                left join emeter on econnection.emeter = emeter.emeter
+                left join room on econnection.room = room.room 
+                left join agreement on agreement.room = room.room 
+            where
+                ((econnection.end_date = '9999-12-31' or 
+                econnection.end_date = '2030-12-31') and
+                econnection.share >= 1) and
+                (emeter.is_invalid = 0)
+            """
+        )
+        connected_clients: list[dict] = kasa.fetchall()
+        connected_clients_df: DataFrame = DataFrame(connected_clients)
+        #
+        # 2. Merge with active clients
+        clients_emeter_df: DataFrame = connected_clients_df.merge(
+            self.client.get_active_clients(), on="client", how="inner"
+        )
+        #
+        # Reorder columns
+        clients_emeter_df = clients_emeter_df[[
+            'year', 'month', 'client', 'client_name', 'quarterly', 'factor',
+            'emeter', 'emeter_num', 'econnection', 'room', 'share'
+        ]]
+        #
+        # Change client values from decimal to integer.
+        clients_emeter_df['client'] = clients_emeter_df['client'].astype(int)
+        #
+        # 3. Get all electricity bills for each electricity meter account
+        kasa.execute(
+            """
+            select
+                elink.emeter,
+                ebill.eaccount,
+                eaccount.num as 'eaccount_num',
+                ebill.due_date,
+                ebill.current_amount
+            from
+                elink
+                inner join eaccount on elink.eaccount = eaccount.eaccount
+                inner join ebill on ebill.eaccount = eaccount.eaccount
+            order by
+                ebill.eaccount,
+                ebill.due_date desc
+            """
+        )
+        all_e_bills: list[dict] = kasa.fetchall()
+        e_bills_df: DataFrame = DataFrame(all_e_bills)
+
+        # 4. Join active emeter with bills
+        all_emeter_bills_df: DataFrame = merge(
+            clients_emeter_df, e_bills_df, on='emeter', how='inner'
+        )
+        #
+        # Filter bills to current month
+        all_emeter_bills_df['due_date'] = to_datetime(all_emeter_bills_df['due_date'])
+        curr_emeter_bills_df = all_emeter_bills_df[
+            (all_emeter_bills_df['due_date'].dt.year == self.client.year) &
+            (all_emeter_bills_df['due_date'].dt.month == self.client.month)
+        ]
+        #
+        # Filter columns to show.
+        curr_emeter_bills_df = curr_emeter_bills_df[[
+            'year', 'month', 'client', 'client_name', 'econnection', 'emeter',
+            'emeter_num', 'eaccount', 'eaccount_num', 'due_date', 'current_amount'
+        ]]
+        #
+        # Truncate current amount values to 2 decimal places
+        curr_emeter_bills_df['current_amount'] = curr_emeter_bills_df['current_amount'].map("{:.2f}".format)
+        #
+        # Remove time value from date.
+        curr_emeter_bills_df['due_date'] = curr_emeter_bills_df['due_date'].dt.date
+        return curr_emeter_bills_df

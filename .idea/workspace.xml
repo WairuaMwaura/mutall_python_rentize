@@ -6,6 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="14fab7f3-5525-4c94-9e7e-f9f66bdcc996" name="Changes" comment="add service feature class">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/v/code/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/v/code/app.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/v/code/rentize.py" beforeDir="false" afterPath="$PROJECT_DIR$/v/code/rentize.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -46,27 +47,27 @@
     <option name="showLibraryContents" value="true" />
     <option name="showMembers" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_MARK_IGNORED_FILES_AS_EXCLUDED&quot;: &quot;true&quot;,
-    &quot;DefaultPlantUmlFileTemplate&quot;: &quot;UML Class&quot;,
-    &quot;Python tests.Doctest via pytest in accessors.py.executor&quot;: &quot;Run&quot;,
-    &quot;Python.api.executor&quot;: &quot;Run&quot;,
-    &quot;Python.app.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.auto-services.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.nyumba.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.rentize.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.rentize_copy.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.services.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.tree.executor&quot;: &quot;Run&quot;,
-    &quot;Python.water.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/mutall_projects/nyumba/v/presentation_backup&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_MARK_IGNORED_FILES_AS_EXCLUDED": "true",
+    "DefaultPlantUmlFileTemplate": "UML Class",
+    "Python tests.Doctest via pytest in accessors.py.executor": "Run",
+    "Python.api.executor": "Run",
+    "Python.app.executor": "Debug",
+    "Python.auto-services.executor": "Debug",
+    "Python.nyumba.executor": "Debug",
+    "Python.rentize.executor": "Run",
+    "Python.rentize_copy.executor": "Debug",
+    "Python.services.executor": "Debug",
+    "Python.tree.executor": "Run",
+    "Python.water.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "main",
+    "ignore.virus.scanning.warn.message": "true",
+    "last_opened_file_path": "D:/mutall_projects/nyumba",
+    "settings.editor.selected.configurable": "reference.settingsdialog.IDE.editor.colors.Python"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\mutall_projects\nyumba\v\presentation_backup" />
@@ -149,7 +150,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/v/code/app.py</url>
-          <line>36</line>
+          <line>42</line>
           <option name="timeStamp" value="28" />
         </line-breakpoint>
       </breakpoints>
