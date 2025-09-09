@@ -215,6 +215,8 @@ class Service:
             self.amount = self.quantity * self.rate
         else:
             print("⚠️ Quantity or rate is None. Cannot calculate amount.")
+
+
 #
 # Define a class that encapsulates water calculations for each client
 class Water(Service):
@@ -422,7 +424,6 @@ class Water(Service):
         return active_invoiced_water_readings_df
 
 
-
 #
 # Define a class that encapsulates utility charges calculations for each client
 class Charges(Service):
@@ -430,6 +431,7 @@ class Charges(Service):
         #
         # Call the constructor method of the parent class (Service class)
         super().__init__(client)
+
     #
     # Get the utility subscriptions charges for each client
     def get_subscribed_charges(self) -> DataFrame:
@@ -486,7 +488,7 @@ class Charges(Service):
         # Reorder columns in DataFrame
         clients_services_df = clients_services_df[
             ['year', 'month', 'client', 'client_name', 'quarterly', 'factor',
-            'connection_count','service_name', 'service_price',
+             'connection_count', 'service_name', 'service_price',
              'negotiated_price', 'calculated_amount']
         ]
         #
@@ -599,8 +601,7 @@ class Rent(Service):
                 where
                     `period`.`year` = %s
                     and `period`.`month` = %s
-            """
-            , (self.client.year, self.client.month - 1)
+            """, (self.client.year, self.client.month - 1)
         )
         start_period: list[dict] = kasa.fetchall()
         start_period_df: DataFrame = DataFrame(start_period)
@@ -613,7 +614,7 @@ class Rent(Service):
         #
         # Rename the previous period cutoff to start period
         start_period_df: DataFrame = start_period_df.rename(
-            columns={ 'previous_month_cutoff': 'start_period' }
+            columns={'previous_month_cutoff': 'start_period'}
         )
         #
         # get end period based on variable date
@@ -626,8 +627,7 @@ class Rent(Service):
                 where
                     `period`.`year` = %s
                     and `period`.`month` = %s
-            """
-            , (self.client.year, self.client.month)
+            """, (self.client.year, self.client.month)
         )
         end_period: list[dict] = kasa.fetchall()
         end_period_df: DataFrame = DataFrame(end_period)
@@ -658,10 +658,10 @@ class Rent(Service):
         )
         #
         # Add the start and end period columns
-        valid_agreements_df:DataFrame = valid_agreements_df.merge(
+        valid_agreements_df: DataFrame = valid_agreements_df.merge(
             start_period_df, how="cross"
         )
-        valid_agreements_df:DataFrame = valid_agreements_df.merge(
+        valid_agreements_df: DataFrame = valid_agreements_df.merge(
             end_period_df, how="cross"
         )
         #
@@ -673,7 +673,7 @@ class Rent(Service):
         valid_agreements_df['start_date'] = pd.to_datetime(valid_agreements_df['start_date'])
         valid_agreements_df['start_period'] = pd.to_datetime(valid_agreements_df['start_period'])
         valid_agreements_df["day_difference"] = (valid_agreements_df["start_period"]
-                                             - valid_agreements_df["start_date"]
+                                                - valid_agreements_df["start_date"]
                                              ).dt.total_seconds() / (60 * 60 * 24)
         valid_agreements_df["year_diff"] = valid_agreements_df["day_difference"] / 365.25
         #
@@ -722,8 +722,7 @@ class Rent(Service):
         ]
         return filtered_valid_agreements_df
 
-#
-# Define a class that encapsulates electricity charges for each client
+
 #
 # Define a class that encapsulates electricity charges for each client
 #
@@ -732,89 +731,144 @@ class Electricity(Service):
         super().__init__(client)
 
     #
-    # Get current electricity readings for each meter
-    def get_current_readings(self) -> DataFrame:
-        # 1. Get all active electricity meters linked to clients
+    # Get bills for all electricity meters.
+    def get_all_bills(self) -> DataFrame:
         kasa.execute(
             """
             select
-                econnection.econnection,
-                econnection.room,
-                econnection.emeter,
-                econnection.share,
-                emeter.new_num_2023_03 as 'emeter_num',
-                agreement.client
+                *
             from
-                econnection
-                left join emeter on econnection.emeter = emeter.emeter
-                left join room on econnection.room = room.room 
-                left join agreement on agreement.room = room.room 
+                ebill
             where
-                ((econnection.end_date = '9999-12-31' or 
-                econnection.end_date = '2030-12-31') and
-                econnection.share >= 1) and
-                (emeter.is_invalid = 0)
-            """
+                year(ebill.due_date) = %s and
+                month(ebill.due_date) = %s
+            """, (self.client.year, self.client.month)
         )
-        connected_clients: list[dict] = kasa.fetchall()
-        connected_clients_df: DataFrame = DataFrame(connected_clients)
-        #
-        # 2. Merge with active clients
-        clients_emeter_df: DataFrame = connected_clients_df.merge(
-            self.client.get_active_clients(), on="client", how="inner"
-        )
-        #
-        # Reorder columns
-        clients_emeter_df = clients_emeter_df[[
-            'year', 'month', 'client', 'client_name', 'quarterly', 'factor',
-            'emeter', 'emeter_num', 'econnection', 'room', 'share'
-        ]]
-        #
-        # Change client values from decimal to integer.
-        clients_emeter_df['client'] = clients_emeter_df['client'].astype(int)
-        #
-        # 3. Get all electricity bills for each electricity meter account
-        kasa.execute(
-            """
-            select
-                elink.emeter,
-                ebill.eaccount,
-                eaccount.num as 'eaccount_num',
-                ebill.due_date,
-                ebill.current_amount
-            from
-                elink
-                inner join eaccount on elink.eaccount = eaccount.eaccount
-                inner join ebill on ebill.eaccount = eaccount.eaccount
-            order by
-                ebill.eaccount,
-                ebill.due_date desc
-            """
-        )
-        all_e_bills: list[dict] = kasa.fetchall()
-        e_bills_df: DataFrame = DataFrame(all_e_bills)
-
-        # 4. Join active emeter with bills
-        all_emeter_bills_df: DataFrame = merge(
-            clients_emeter_df, e_bills_df, on='emeter', how='inner'
-        )
-        #
-        # Filter bills to current month
-        all_emeter_bills_df['due_date'] = to_datetime(all_emeter_bills_df['due_date'])
-        curr_emeter_bills_df = all_emeter_bills_df[
-            (all_emeter_bills_df['due_date'].dt.year == self.client.year) &
-            (all_emeter_bills_df['due_date'].dt.month == self.client.month)
-        ]
-        #
-        # Filter columns to show.
-        curr_emeter_bills_df = curr_emeter_bills_df[[
-            'year', 'month', 'client', 'client_name', 'econnection', 'emeter',
-            'emeter_num', 'eaccount', 'eaccount_num', 'due_date', 'current_amount'
-        ]]
+        all_ebills: list[dict] = kasa.fetchall()
+        all_ebills_df: DataFrame = DataFrame(all_ebills)
         #
         # Truncate current amount values to 2 decimal places
-        curr_emeter_bills_df['current_amount'] = curr_emeter_bills_df['current_amount'].map("{:.2f}".format)
+        all_ebills_df['current_amount'] = (all_ebills_df['current_amount']
+                                                .map("{:.2f}".format))
+
+        return all_ebills_df
+
+    #
+    # Get bills for electricity meters that are connected to occupied rooms
+    # (i.e., active clients).
+    def get_client_ebills(self) -> DataFrame:
+        kasa.execute(
+            """
+            select distinct
+                    client.client,
+                    emeter.emeter,
+                    eaccount.eaccount
+                from
+                    eaccount
+                    inner join elink on elink.eaccount = eaccount.eaccount
+                    inner join emeter on elink.emeter = emeter.emeter
+                    inner join econnection on econnection.emeter = emeter.emeter
+                    inner join room on econnection.room = room.room
+                    inner join agreement on agreement.room = room.room
+                    inner join client on agreement.client = client.client
+            """
+        )
+        occupied_rooms: list[dict] = kasa.fetchall()
+        client_eaccounts_df: DataFrame = DataFrame(
+            occupied_rooms)
         #
-        # Remove time value from date.
-        curr_emeter_bills_df['due_date'] = curr_emeter_bills_df['due_date'].dt.date
-        return curr_emeter_bills_df
+        # Get ebills for active clients
+        active_clients_ebills_df = client_eaccounts_df.merge(
+            self.client.get_active_clients(),
+            on="client",
+            how="inner"
+        ).merge(
+            self.get_all_bills(),
+            on='eaccount'
+        )
+        #
+        # Get distinct ebills for active clients
+        active_clients_ebills_df = active_clients_ebills_df.drop_duplicates(subset=['ebill'])
+        #
+        # Filter columns to show
+        active_clients_ebills_df = active_clients_ebills_df[[
+            'client',
+            'emeter',
+            'eaccount',
+            'ebill'
+        ]]
+
+        return active_clients_ebills_df
+
+    #
+    # Get ebills for electricity meters that are connected to rooms (whether
+    # occupied or not).
+    def get_room_ebills(self) -> DataFrame:
+        kasa.execute(
+            """
+            select
+                room.room,
+                emeter.emeter,
+                eaccount.eaccount
+            from
+                eaccount
+                inner join elink on elink.eaccount = eaccount.eaccount
+                inner join emeter on elink.emeter = emeter.emeter
+                inner join econnection on econnection.emeter = emeter.emeter
+                inner join room on econnection.room = room.room
+            """
+        )
+        connected_rooms: list[dict] = kasa.fetchall()
+        connected_rooms_df: DataFrame = DataFrame(
+            connected_rooms)
+        #
+        # Get the ebills connected to a room.
+        connected_rooms_bills_df = connected_rooms_df.merge(
+            self.get_all_bills(),
+            on='eaccount'
+        )
+        #
+        # Get the distinct ebills for the connected rooms.
+        connected_rooms_bills_df = connected_rooms_bills_df.drop_duplicates(
+            subset=['ebill'])
+        #
+        # Filter columns to show.
+        connected_rooms_bills_df = connected_rooms_bills_df[[
+            'room',
+            'emeter',
+            'eaccount',
+            'ebill'
+        ]]
+
+        return connected_rooms_bills_df
+    #
+    # Get bills for electricity meters that are connected to unoccupied rooms.
+    def get_unattended_ebills(self) -> DataFrame:
+        #
+        # 1. Perform a left join of the active client ebills against all
+        # the rooms that have ebills.
+        unattended_bills_df = self.get_room_ebills().merge(
+            self.get_client_ebills(),
+            on='ebill',
+            how='left'
+        )
+        #
+        # 2. Keep only those ebills that didn't have a client column.
+        unattended_bills_df = unattended_bills_df[unattended_bills_df["client"].isna()][["ebill"]]
+
+        return unattended_bills_df
+
+    #
+    # Get bills for electricity meters that are not connected to rooms by:
+    # 1. Left joining all ebills against ebills that are connected to rooms
+    def get_service_ebills(self) -> DataFrame:
+        service_ebills_df = self.get_all_bills().merge(
+            self.get_room_ebills(),
+            on='ebill',
+            how='left'
+        )
+        #
+        # 2. Keep only those where occupied room ebills didn't match.
+        service_ebills_df = \
+        service_ebills_df[service_ebills_df["room"].isna()][["ebill"]]
+        return service_ebills_df

@@ -3,12 +3,12 @@
 from rentize import Client, Service, Water, Charges, Rent, Electricity
 #
 # Date Variables
-month = 5
+month = 8
 year = 2025
 #
-# Instantiate Client class
+# Instantiate the Client class with the specified date variables.
 client = Client(month, year)
-# #
+#
 # # Instantiate Service class
 # service = Service(client)
 # #
@@ -33,11 +33,14 @@ client = Client(month, year)
 # # Instantiate Rent class
 # rent = Rent(client)
 # rent_p = rent.get_rental_charges()
-
-elect = Electricity(client)
-# prev_elec_rds = elect.get_previous_readings()
-curr_elec_rds = elect.get_current_readings()
-
-
-
+#
+# Use the current client to create an instance of the Electricity class.
+e_class = Electricity(client)
+#
+# Use the electric instance to get the electricity readings of the specified month.
+all_ebills = e_class.get_all_bills()
+client_ebills = e_class.get_client_ebills()
+room_bills = e_class.get_room_ebills()
+unattended_ebills = e_class.get_unattended_ebills()
+service_ebills = e_class.get_service_ebills()
 print('finished')
