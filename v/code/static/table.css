@@ -1,0 +1,33 @@
+/* 
+Draw borders on the table and cells. */
+table, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+}
+/* 
+Give padding to the cells. */
+td {
+    padding: 8px;
+}
+/* 
+Give background color to a cell that has been clicked. */
+td.selected {
+    background-color: lightgoldenrodyellow;
+}  
+/* 
+Give background color to a row that has been clicked */
+tr.selected_2 {
+    background-color: aliceblue;
+}
+/* 
+Show that the last row is active. */
+tr:last-child {
+    background-color: aquamarine;
+}
+/* 
+Disable pointer events for last row. */
+tr:last-child.disabled {
+    pointer-events: none;
+    cursor: none;
+    background-color: red;
+}
