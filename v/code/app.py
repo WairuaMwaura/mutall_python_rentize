@@ -1,46 +1,39 @@
 #
-# Import classes
-from rentize import Client, Service, Water, Charges, Rent, Electricity
+# Import FastAPI to create endpoints for my app.
+from fastapi import FastAPI
 #
-# Date Variables
-month = 8
-year = 2025
 #
-# Instantiate the Client class with the specified date variables.
-client = Client(month, year)
+from fastapi.responses import HTMLResponse
+from rentize import Client, Electricity
+
 #
-# # Instantiate Service class
-# service = Service(client)
-# #
-# # List active clients
-# clients_df = service.client.get_active_clients()
-# #
-# # Instantiate Charges class
-# charges = Charges(client)
-# #
-# # Show subscribed charges for each client
-# subs_df = charges.get_subscribed_charges()
-# #
-# # Show automatic charges for each client
-# auto_charges_df = charges.get_auto_charges()
-# #
-# # Get current water readings based on the variable date at the top
-# curr_water_rds = Water(client).get_current_readings()
-# #
-# # Get previous water readings based on the variable date at the top
-# prev_water_rds = Water(client).get_previous_readings()
-# #
-# # Instantiate Rent class
-# rent = Rent(client)
-# rent_p = rent.get_rental_charges()
+# Instantiate the FastAPI to a variable.
+my_app = FastAPI()
+
+
 #
-# Use the current client to create an instance of the Electricity class.
-e_class = Electricity(client)
-#
-# Use the electric instance to get the electricity readings of the specified month.
-all_ebills = e_class.get_all_bills()
-client_ebills = e_class.get_client_ebills()
-room_bills = e_class.get_room_ebills()
-unattended_ebills = e_class.get_unattended_ebills()
-service_ebills = e_class.get_service_ebills()
-print('finished')
+# Home page to the app.
+@my_app.get("/")
+async def root():
+    return {
+        "message": "RENTIZE IS NOW ACCESSIBLE ON SERVER!"
+    }
+
+@my_app.get("/all_ebills", response_class=HTMLResponse)
+def all_ebills():
+    month = 8
+    year = 2024
+    client = Client(month, year)
+    e_class = Electricity(client)
+    df = e_class.get_all_bills()   # <-- this returns a DataFrame
+    table_html = df.to_html(index=True)
+    return f"""
+    <html>
+        <head><title>Electricity Bills</title></head>
+        <body>
+            <h2>Electricity Bills</h2>
+            {table_html}
+        </body>
+    </html>
+    """
+

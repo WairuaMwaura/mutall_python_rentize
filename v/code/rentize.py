@@ -61,6 +61,7 @@ class Client:
         self.month: int = month
         self.year: int = year
         self.specified_date = datetime(self.year, self.month, 1)
+        self.client = self.get_active_clients()
 
     # Define the methods of the class
     #
@@ -872,3 +873,10 @@ class Electricity(Service):
         service_ebills_df = \
         service_ebills_df[service_ebills_df["room"].isna()][["ebill"]]
         return service_ebills_df
+
+
+# Define a class that encapsulates bank reconciliation
+class Payment(Service):
+    def __init__(self, client: Client):
+        super().__init__(client)
+        pass
