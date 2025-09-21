@@ -16,17 +16,12 @@ td.selected {
 }  
 /* 
 Give background color to a row that has been clicked */
-tr.selected_2 {
+.selected_2 {
     background-color: aliceblue;
 }
 /* 
-Show that the last row is active. */
-tr:last-child {
-    background-color: aquamarine;
-}
-/* 
 Disable pointer events for last row. */
-tr:last-child.disabled {
+.disabled {
     pointer-events: none;
     cursor: none;
     background-color: red;
