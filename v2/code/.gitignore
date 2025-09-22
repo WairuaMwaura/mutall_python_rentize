@@ -1,0 +1,3 @@
+#This is the file that will contain all files & folders that I dont want to be git tracked
+.venv/
+tests/

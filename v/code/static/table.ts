@@ -18,21 +18,21 @@ const last_row: HTMLTableRowElement | null = document.querySelector('tr:last-chi
 // 
 // Loop through each cell and add an event listener to them.
 cells_arr.forEach((clicked_cell: HTMLTableCellElement) => {
-    clicked_cell.addEventListener("click", function() {
+    clicked_cell.onclick = function() {
         // 
         // Set apart this logic for cells that are not in the last row
         if (clicked_cell.closest('tr') != last_row) {
             // 
-            // Check if the clicked cell element has a class 'selected'.
-            if (clicked_cell.classList.contains('selected')) {
+            // Check if the clicked cell element has a class 'active-cell'.
+            if (clicked_cell.classList.contains('active-cell')) {
                 // 
                 // Remove the class 'selected' from clicked cell.
-                clicked_cell.classList.remove("selected");
+                clicked_cell.classList.remove("active-cell");
                 // 
-                // Remove the class 'selected_2' from the parent row.
+                // Remove the class 'active-row' from the parent row.
                 const parentRow: HTMLTableRowElement | null = clicked_cell.closest('tr')
                 if (parentRow) {
-                    parentRow.classList.remove('selected_2')
+                    parentRow.classList.remove('active-row')
                 }
                 // 
                 // Remove the 'disabled' class from the last row.
@@ -43,22 +43,22 @@ cells_arr.forEach((clicked_cell: HTMLTableCellElement) => {
                 // Check if any other cell element was selected
                 cells_arr.forEach((cell_2) => {
                     // 
-                    // Remove the class 'selected'.
-                    cell_2.classList.remove('selected');
+                    // Remove the class 'active-cell'.
+                    cell_2.classList.remove('active-cell');
                 });
                 //
-                // Add the class 'selected' for the clicked cell element
-                clicked_cell.classList.add('selected');
+                // Add the class 'active-cell' for the clicked cell element
+                clicked_cell.classList.add('active-cell');
                 // 
-                // check if any other row element was selected and remove the 'selected_2' class.
+                // check if any other row element was selected and remove the 'active-row' class.
                 rows_arr.forEach((row_2) => {
-                    row_2.classList.remove('selected_2');
+                    row_2.classList.remove('active-row');
                 });
                 // 
-                // Add the 'selected_2' class for the parent row
+                // Add the 'active-row' class for the parent row
                 const parentRow_2: HTMLTableRowElement | null = clicked_cell.closest('tr')
                 if (parentRow_2) {
-                    parentRow_2.classList.add('selected_2')
+                    parentRow_2.classList.add('active-row')
                 }
                 // 
                 // Add the 'disabled' class to the last row.
@@ -69,15 +69,15 @@ cells_arr.forEach((clicked_cell: HTMLTableCellElement) => {
         // Logic for last row
         else {
             //
-            // Check if the clicked cell element has a class 'selected'.
-            if (clicked_cell.classList.contains('selected')) {
+            // Check if the clicked cell element has a class 'active-cell'.
+            if (clicked_cell.classList.contains('active-cell')) {
                 // 
-                // Remove the class 'selected' from clicked cell.
-                clicked_cell.classList.remove("selected");
+                // Remove the class 'active-cell' from clicked cell.
+                clicked_cell.classList.remove("active-cell");
                 // 
-                // Remove the class 'selected_2' from the last row.
+                // Remove the class 'active-row' from the last row.
                 if (last_row) {
-                    last_row.classList.remove('selected_2')
+                    last_row.classList.remove('active-row')
                 }
                 // 
                 // Add the 'disabled' class to the other rows that are not the last row.
@@ -92,21 +92,21 @@ cells_arr.forEach((clicked_cell: HTMLTableCellElement) => {
                 // Check if any other cell element was selected
                 cells_arr.forEach((cell_2) => {
                     // 
-                    // Remove the class 'selected'.
-                    cell_2.classList.remove('selected');
+                    // Remove the class 'active-cell'.
+                    cell_2.classList.remove('active-cell');
                 });
                 //
-                // Add the class 'selected' for the clicked cell element
-                clicked_cell.classList.add('selected');
+                // Add the class 'active-cell' for the clicked cell element
+                clicked_cell.classList.add('active-cell');
                 // 
-                // check if any other row element was selected and remove the 'selected_2' class.
+                // check if any other row element was selected and remove the 'active-row' class.
                 rows_arr.forEach((row_2) => {
-                    row_2.classList.remove('selected_2');
+                    row_2.classList.remove('active-row');
                 });
                 // 
-                // Add the 'selected_2' class for the last row
+                // Add the 'active-row' class for the last row
                 if (last_row) {
-                    last_row.classList.add('selected_2')
+                    last_row.classList.add('active-row')
                 }
                 // 
                 // Add the 'disabled' class to the other rows that are not the last row.
@@ -117,5 +117,5 @@ cells_arr.forEach((clicked_cell: HTMLTableCellElement) => {
                 });
             } 
         }
-    });
+    };
 });

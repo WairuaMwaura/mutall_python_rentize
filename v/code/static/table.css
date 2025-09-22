@@ -11,12 +11,12 @@ td {
 }
 /* 
 Give background color to a cell that has been clicked. */
-td.selected {
+td.active-cell {
     background-color: lightgoldenrodyellow;
 }  
 /* 
 Give background color to a row that has been clicked */
-.selected_2 {
+.active-row {
     background-color: aliceblue;
 }
 /* 
