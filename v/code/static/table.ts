@@ -115,6 +115,8 @@ cells_arr.forEach((clicked_cell: HTMLTableCellElement) => {
                         row.classList.add('disabled')
                     }
                 });
+                // 
+                // Just a random print STATEMENT
             } 
         }
     };
