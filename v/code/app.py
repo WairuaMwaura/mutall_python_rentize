@@ -1,6 +1,6 @@
 #
 # Import FastAPI to create endpoints for my app.
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Query
 #
 #
 from fastapi.templating import Jinja2Templates
@@ -26,51 +26,70 @@ my_app.mount("/static", StaticFiles(directory="static"), name="static")
 # Point FastAPI to the templates folder.
 templates = Jinja2Templates(directory="templates")
 #
-# Home page to the app - returns a JSON object.
-@my_app.get("/")
-async def root():
-    return {
-        "message": "RENTIZE IS NOW ACCESSIBLE ON UVICORN SEVER"
-    }
-
-#
-# Display the deselection table.
-@my_app.get("/deselection", response_class=HTMLResponse)
-def deselection_table(request: Request):
+# Home page to the app - returns a HTML page.
+@my_app.get("/", response_class=HTMLResponse)
+async def index(request: Request):
     return templates.TemplateResponse(
-        "deselect.html",
+        "index.html",
         {
             "request": request
         }
     )
-
-#
-# Page that shows all the bills - returns HTML content.
-@my_app.get("/all_ebills", response_class=HTMLResponse)
-def all_ebills(request: Request):
+    
+# 
+# Display electricity page in 2 modes: initial load and with user generating tables.
+@my_app.get("/electricity", response_class=HTMLResponse, name="electricity_page")
+def electricity(request: Request, month: int | None = None, year: int = None):
     #
-    # User input dates to specify period.
-    month = 9
-    year = 2025
+    # Initialize ebills_table, client_ebills_table, unattended_ebills_table,
+    #   service_ebills_table to None for the initial page load.
+    ebills_table = None
+    client_ebills_table = None
+    unattended_ebills_table = None
+    service_ebills_table = None
     #
-    # Instantiate the Client class using the dates above.
-    client = Client(month, year)
+    # If client generates all bills with month and year values.
+    if (month != None and year != None):
+        #
+        # Instantiate the Client class using the dates above.
+        client = Client(month, year)
+        #
+        # Instantiate the Electricty class using the client.
+        e_class = Electricity(client)
+        #
+        # Get all the electricity bills DataFrame for that specified month.
+        ebills_df = e_class.get_all_bills()
+        #
+        # Convert the DataFrame above to a HTML table.
+        ebills_table = ebills_df.to_html(index=True)
+        #
+        # Get all the client electricity bills DataFrame for that specified month.
+        client_ebills_df = e_class.get_client_ebills()
+        #
+        # Convert the DataFrame above to a HTML table.
+        client_ebills_table = client_ebills_df.to_html(index=True)
+        #
+        # Get all the unattended electricity bills DataFrame for that specified month.
+        unattended_ebills_df = e_class.get_unattended_ebills()
+        #
+        # Convert the DataFrame above to a HTML table.
+        unattended_ebills_table = unattended_ebills_df.to_html(index=True)
+        #
+        # Get all the service electricity bills DataFrame for that specified month.
+        service_ebills_df = e_class.get_service_ebills()
+        #
+        # Convert the DataFrame above to a HTML table.
+        service_ebills_table = service_ebills_df.to_html(index=True)
     #
-    # Instantiate the Electricty class using the client.
-    e_class = Electricity(client)
-    #
-    # Get all the electricity bills DataFrame for that specified month.
-    df = e_class.get_all_bills()
-    #
-    # Convert the DataFrame above to a HTML table.
-    table_html = df.to_html(index=True)
-    #
-    # Pass both request and table to template
+    # Pass both request and ebills_table to electricity.html template.
     return templates.TemplateResponse(
-        "table.html",
+        "electricity.html",
         {
             "request": request,
-            "table": table_html
+            "ebills": ebills_table,
+            "client_ebills": client_ebills_table,
+            "unattended_ebills": unattended_ebills_table,
+            "service_ebills": service_ebills_table
         }
     )
 

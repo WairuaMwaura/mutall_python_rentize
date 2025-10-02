@@ -1,0 +1,28 @@
+/* 
+Draw borders on the table and cells. */
+table, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+}
+/* 
+Give padding to the cells. */
+td {
+    padding: 8px;
+}
+/* 
+Give background color to a cell that has been clicked. */
+td.active-cell {
+    background-color: lightgoldenrodyellow;
+}  
+/* 
+Give background color to a row that has been clicked */
+.active-row {
+    background-color: aliceblue;
+}
+/* 
+Disable pointer events for last row. */
+.disabled {
+    pointer-events: none;
+    cursor: none;
+    background-color: red;
+}

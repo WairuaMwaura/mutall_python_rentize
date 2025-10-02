@@ -1,0 +1,46 @@
+html, body {
+        height: 100%;
+        margin: 0;
+}
+
+/* use a grid system to layout the whole page */
+body {
+    display: grid;
+    grid-template-areas:
+        "logo nav user_input user_input"
+        "all all service service"
+        "all all service service"
+        "footer footer footer footer";
+    grid-template-columns: 100px repeat(3, 1fr);
+    grid-template-rows: 1fr 8fr 0.5fr;
+}
+
+.logo_container {
+    grid-area: logo;
+    border: 1px solid #003263;
+}
+
+.nav_container {
+    grid-area: nav;
+    border: 1px solid #003263;
+}
+.user_input_container {
+    grid-area: user_input;
+    border: 1px solid #003263;
+}
+.all_container {
+    grid-area: all;
+    border: 1px solid #003263;
+    overflow-y: auto;
+    overflow-x: auto;
+}
+
+.service_container {
+    grid-area: service;
+    border: 1px solid #003263;
+}
+
+.footer_container {
+    grid-area: footer;
+    border: 1px solid #003263;
+}

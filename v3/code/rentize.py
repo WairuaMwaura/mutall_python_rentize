@@ -751,11 +751,6 @@ class Electricity(Service):
         # Truncate current amount values to 2 decimal places
         all_ebills_df['current_amount'] = (all_ebills_df['current_amount']
                                                 .map("{:.2f}".format))
-        #
-        # Filter columns to show.
-        # all_ebills_df = all_ebills_df[[
-        #
-        # ]]
 
         return all_ebills_df
 

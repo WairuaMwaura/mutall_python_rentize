@@ -1,0 +1,48 @@
+<!--
+  Extending the base HTML template.-->
+{% extends "base.html" %}
+<!--
+  Customize the title of the page.-->
+{% block title %}Electricity - Rentize{% endblock %}
+<!--
+  The form for user input-->
+{% block generate %}
+    <form action="{{ request.url_for('electricity_page') }}" method="get">
+
+        <label for="month">Month:</label>
+        <input type="number" id="month" name="month" min="1" max="12" required>
+
+        <label for="year">Year:</label>
+        <input type="number" id="year" name="year" min="2010" max="9999" required>
+
+        <button type="submit">Generate</button>
+    </form> 
+{% endblock %}
+<!--
+  Display ebills_table if user generates the all bills. -->
+{% block content %}
+    <div>
+        <h1>All Electricity Bills</h1>
+
+        {% if ebills %}
+            {{ ebills | safe }}
+        {% else %}
+            <p>No bills generated yet. Please enter year and month above.</p>
+        {% endif %}
+    </div>
+{% endblock %}
+<!--
+  Display client, unattended, and service electricity bills-->
+{% block service %}
+    <form action="/ebill_client" method="get">
+        <button type="submit">Client bills</button>
+    </form>
+
+    <form action="/ebill_unattended" method="get">
+      <button type="submit">Unattended bills</button>
+    </form>
+
+    <form action="/ebill_service" method="get">
+      <button type="submit">Service bills</button>
+    </form>
+{% endblock %}
