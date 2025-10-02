@@ -1,18 +1,18 @@
-# Nyumba
+# Rentize
 
 ## Exporting python modules.
 
-- To export this project's modules to a file ```rentize.txt``` in this case, use the code below.
+- To export this project's modules/libraries to a file ```requirements.txt``` in this case, use the code below.
 ```python
-    pip freeze > rentize.txt
+    pip freeze > requirements.txt
 ```
 
 ## Importing python modules
 
-- To reuse this project as it was, make sure the ```rentize.txt``` exists in the current working directory. 
+- To reuse this project as it was, make sure the ```requirements.txt``` exists in the current working directory. 
 - If the file exists,run the command below to download the python modules using the code below.
 
 ```python
-    pip install -r rentize.txt
+    pip install -r requirements.txt
 ```
 

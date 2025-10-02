@@ -60,146 +60,114 @@ class Client:
     def __init__(self, month, year):
         self.month: int = month
         self.year: int = year
-        self.specified_date = datetime(self.year, self.month, 1)
+        self.curr_cutoff: datetime | None = None
+        self.prev_cutoff: datetime | None = None
         self.client = self.get_active_clients()
 
     # Define the methods of the class
     #
+    # Get list of all active clients and their respective payment modes from the
+    #   database.
     # Define method that gets active clients
     def get_active_clients(self) -> DataFrame:
+
         #
-        # Get list of all clients that have a valid agreement and their
-        #   respective payment modes from the database.
-        #
-        # Execute query on the database
+        # Execute query to select period data from the database
         kasa.execute(
             """
-            with
-                #
-                # Select all valid agreements
-                valid_agreement as (
-                    select distinct
-                        client,
-                        #
-                        # Select the first start_date for client with multiple
-                        #  agreement start dates
-                        min(start_date) as start_date
-                    from
-                        agreement
-                    where
-                        valid = 1
-                        and `terminated` is null
-                    group by
-                        client
-                ),
-                #
-                # Select all clients with valid agreements
-                valid_clients as (
-                    select
-                        client.client,
-                        client.name as client_name,
-                        client.quarterly,
-                        valid_agreement.start_date
-                    from
-                        client
-                        inner join valid_agreement on valid_agreement.client = client.client
-                ),
-                #
-                # all rooms with water connection
-                connected_rooms as (
-                    select
-                        wconnection.wconnection,
-                        room.room
-                    from
-                        wconnection
-                        left join room on wconnection.room = room.room
-                ),
-                #
-                # all clients with water connection
-                connected_clients as (
-                    select
-                        connected_rooms.*,
-                        agreement.client,
-                        agreement.terminated,
-                        agreement.valid,
-                        agreement.start_date
-                    from
-                        connected_rooms
-                        left join agreement on agreement.room = connected_rooms.room
-                ),
-                #
-                # all valid clients with or without water connection
-                        valid_connected_clients as (
-                            select
-                                valid_clients.*,
-                                connected_clients.wconnection
-                            from
-                                valid_clients
-                                left join connected_clients on connected_clients.client = valid_clients.client
-                )
-                #
-                # show number of water connections for each client
-                select 
-                    client, 
-                    client_name, 
-                    quarterly, 
-                    start_date, 
-                    count(wconnection) AS connection_count
-                from
-                    valid_connected_clients
-                group by
-                    client, client_name, quarterly, start_date;
+            select
+                *
+            from
+                `period`;
             """
         )
         #
         # Fetch results from the database
-        active_clients: list[dict] = kasa.fetchall()
+        period: list[dict] = kasa.fetchall()
         #
         # Create a DataFrame for the fetched result
-        active_clients_df: DataFrame = DataFrame(active_clients)
+        period_df: DataFrame = DataFrame(period)
         #
-        # Convert agreement start date to standard date format
-        active_clients_df['start_date'] = to_datetime(
-            active_clients_df['start_date']
-        )
+        # Create a numbered list of all periods so we can easily find "previous"
+        #   periods.
+        period_df["row_number"] = range(len(period_df))
         #
-        # Add year and month columns in DataFrame
-        active_clients_df['year'] = self.year
-        active_clients_df['month'] = self.month
-        #
-        # Calculate factor for each client based on the specified date
-        #
-        # Calculate month difference for each client between their agreement
-        #   first date and the specified date
-        active_clients_df['month_difference'] = (
-            ((self.specified_date.year - active_clients_df['start_date'].dt.year)*12)
-            + (self.specified_date.month - active_clients_df['start_date'].dt.month)
-        )
-        #
-        # Calculate factor for each client based on their payment type
-        #
-        # Monthly clients have a factor of 1
-        active_clients_df['factor'] = 1
-        #
-        # Quarterly clients that are due have a factor of 3
-        active_clients_df.loc[
-            (active_clients_df['quarterly'] == 1)
-            & (active_clients_df['month_difference'] % 3 == 0),
-            'factor'
-        ] = 3
-        active_clients_df.loc[
-            (active_clients_df['quarterly'] == 1)
-            & (active_clients_df['month_difference'] % 3 != 0),
-            'factor'
-        ] = 0
-        #
-        # Filter DataFrame columns to show
-        active_clients_df: DataFrame = active_clients_df[
-            ['year', 'month', 'client', 'client_name', 'quarterly', 'factor',
-             'connection_count']
+        # Get the row number and cutoff date for the current reporting period.
+        current_period = period_df[
+            (period_df["month"] == self.month) & (period_df["year"] == self.year)
         ]
-
-        return active_clients_df
+        #
+        # Throw an error if there is no period for that month.
+        if current_period.empty:
+            raise ValueError("No matching period found for that month in the database")
+        #
+        # Get the row number and cutoff date and convert the latter to datetime format.
+        row_number = current_period.iloc[0]["row_number"]
+        self.curr_cutoff = pd.to_datetime(current_period.iloc[0]["cutoff"])
+        #
+        # Get the cutoff date of the period just before the current one.
+        #
+        # Get the previous period by subtracting 1 from the row_num of the
+        #   current period.
+        previous_period = period_df[period_df["row_number"] == row_number - 1]
+        #
+        # Get the cutoff (date) from the previous period and convert it to datetime format.
+        self.prev_cutoff = pd.to_datetime(previous_period.iloc[0]["cutoff"])
+        #
+        # Prepare agreements:
+        #   - Impute null values on the 'terminated' column as "end date" (9999-12-31)
+        #       for agreements that are still active (no termination date).
+        #   - Keep only agreements marked as valid.
+        kasa.execute(
+            """
+            select
+                *
+            from
+                agreement
+            where
+                valid = 1;
+            """
+        )
+        valid_agreements: list[dict] = kasa.fetchall()
+        valid_agreement_df: DataFrame = DataFrame(valid_agreements)
+        #
+        # Impute null terminated date values with End of time date as end_date.
+        #
+        # Get End of time as datetime format.
+        # Since pandas datetime64[ns] can only handle dates between 1677-09-21 and 2262-04-11.
+        e_o_t = pd.Timestamp("2262-04-11")
+        # Convert start dates and end dates to datetime formart
+        valid_agreement_df["start_date"] = pd.to_datetime(valid_agreement_df["start_date"])
+        valid_agreement_df["end_date"] = pd.to_datetime(
+            valid_agreement_df["terminated"].fillna(e_o_t)
+        )
+        #
+        # Link each valid agreement above with a client getting the earliest start date
+        #   and the latest end date.
+        # Get all Clients.
+        kasa.execute("select * from client;")
+        client_df = DataFrame(kasa.fetchall())
+        client_tenure_df = (
+            #
+            # Join client and valid_agreements dataframes.
+            valid_agreement_df.merge(client_df, on="client", how="inner")
+            #
+            # Group by client when performing the aggregate functions (i.e., min
+            #   and max).
+            .groupby("client", as_index=False).agg(
+                start_date=("start_date", "min"),
+                end_date=("end_date", "max")
+            )
+        )
+        #
+        # Get the clients who were active during the specified reporting period:
+        #   An active client is one whose agreement started on or before the current
+        #       cutoff and their agreement ended after the previous cutoff.
+        active_client_df = client_tenure_df[
+            (client_tenure_df["start_date"] <= self.curr_cutoff)
+            & (client_tenure_df["end_date"] > self.prev_cutoff)
+            ]
+        return active_client_df
 
 
 #
@@ -768,7 +736,9 @@ class Electricity(Service):
             select distinct
                     client.client,
                     emeter.emeter,
-                    eaccount.eaccount
+                    emeter.new_num_2023_03 as `emeter_no`,
+                    eaccount.eaccount,
+                    eaccount.num as `eaccount_no`
                 from
                     eaccount
                     inner join elink on elink.eaccount = eaccount.eaccount
@@ -779,11 +749,13 @@ class Electricity(Service):
                     inner join client on agreement.client = client.client
             """
         )
-        occupied_rooms: list[dict] = kasa.fetchall()
+        client_eaccounts: list[dict] = kasa.fetchall()
         client_eaccounts_df: DataFrame = DataFrame(
-            occupied_rooms)
+            client_eaccounts)
         #
         # Get ebills for active clients
+        #
+        # Join client_eaccounts with active clients and all ebills.
         active_clients_ebills_df = client_eaccounts_df.merge(
             self.client.get_active_clients(),
             on="client",
@@ -799,9 +771,10 @@ class Electricity(Service):
         # Filter columns to show
         active_clients_ebills_df = active_clients_ebills_df[[
             'client',
-            'emeter',
-            'eaccount',
-            'ebill'
+            'emeter_no',
+            'eaccount_no',
+            'ebill',
+            'current_amount'
         ]]
 
         return active_clients_ebills_df
@@ -814,8 +787,11 @@ class Electricity(Service):
             """
             select
                 room.room,
+                room.uid as `room_uid`,
                 emeter.emeter,
-                eaccount.eaccount
+                emeter.new_num_2023_03 as `emeter_no`,
+                eaccount.eaccount,
+                eaccount.num as `eaccount_no`
             from
                 eaccount
                 inner join elink on elink.eaccount = eaccount.eaccount
@@ -841,9 +817,13 @@ class Electricity(Service):
         # Filter columns to show.
         connected_rooms_bills_df = connected_rooms_bills_df[[
             'room',
+            'room_uid',
             'emeter',
+            'emeter_no',
             'eaccount',
-            'ebill'
+            'eaccount_no',
+            'ebill',
+            'current_amount'
         ]]
 
         return connected_rooms_bills_df
@@ -860,7 +840,15 @@ class Electricity(Service):
         )
         #
         # 2. Keep only those ebills that didn't have a client column.
-        unattended_bills_df = unattended_bills_df[unattended_bills_df["client"].isna()][["ebill"]]
+        unattended_bills_df = unattended_bills_df[unattended_bills_df["client"].isna()]
+        unattended_bills_df = unattended_bills_df[[
+            "room",
+            "room_uid",
+            "eaccount_no_x",
+            "emeter_no_x",
+            "ebill",
+            "current_amount_x"
+        ]]
 
         return unattended_bills_df
 
@@ -876,7 +864,13 @@ class Electricity(Service):
         #
         # 2. Keep only those where occupied room ebills didn't match.
         service_ebills_df = \
-        service_ebills_df[service_ebills_df["room"].isna()][["ebill"]]
+        service_ebills_df[service_ebills_df["room"].isna()]
+        service_ebills_df = service_ebills_df[[
+            "emeter",
+            "eaccount_x",
+            "ebill",
+            "current_amount_x"
+        ]]
         return service_ebills_df
 
 

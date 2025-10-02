@@ -28,7 +28,7 @@ templates = Jinja2Templates(directory="templates")
 #
 # Home page to the app - returns a HTML page.
 @my_app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
+def index(request: Request):
     return templates.TemplateResponse(
         "index.html",
         {
@@ -39,7 +39,7 @@ async def index(request: Request):
 # 
 # Display electricity page in 2 modes: initial load and with user generating tables.
 @my_app.get("/electricity", response_class=HTMLResponse, name="electricity_page")
-def electricity(request: Request, month: int | None = None, year: int = None):
+async def electricity(request: Request, month: int | None = None, year: int = None):
     #
     # Initialize ebills_table, client_ebills_table, unattended_ebills_table,
     #   service_ebills_table to None for the initial page load.

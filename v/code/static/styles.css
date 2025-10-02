@@ -14,32 +14,40 @@ body {
     grid-template-columns: 100px repeat(3, 1fr);
     grid-template-rows: 1fr 8fr 0.5fr;
 }
-
+/*
+Section for the logo. */
 .logo_container {
     grid-area: logo;
     border: 1px solid #003263;
 }
-
+/*
+Section for the navigation of the webapp. */
 .nav_container {
     grid-area: nav;
     border: 1px solid #003263;
 }
+/*
+Section for the user sending input to the server. */
 .user_input_container {
     grid-area: user_input;
     border: 1px solid #003263;
 }
+/*
+Section for displaying the main service the user generated. */
 .all_container {
     grid-area: all;
     border: 1px solid #003263;
     overflow-y: auto;
     overflow-x: auto;
 }
-
+/*
+Section for displaying the categories of the service the user generated. */
 .service_container {
     grid-area: service;
     border: 1px solid #003263;
 }
-
+/*
+Section for the footer. */
 .footer_container {
     grid-area: footer;
     border: 1px solid #003263;

@@ -5,12 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="14fab7f3-5525-4c94-9e7e-f9f66bdcc996" name="Changes" comment="add service feature class">
-      <change afterPath="$PROJECT_DIR$/v/code/templates/deselect.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/v/code/templates/table.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/v/code/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/v/code/app.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/v/code/static/table.js" beforeDir="false" afterPath="$PROJECT_DIR$/v/code/static/table.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/v/code/static/table.ts" beforeDir="false" afterPath="$PROJECT_DIR$/v/code/static/table.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/v/code/rentize.py" beforeDir="false" afterPath="$PROJECT_DIR$/v/code/rentize.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/v/code/static/styles.css" beforeDir="false" afterPath="$PROJECT_DIR$/v/code/static/styles.css" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -59,27 +59,29 @@
     "Python tests.Doctest via pytest in accessors.py.executor": "Run",
     "Python.api.executor": "Run",
     "Python.app.executor": "Run",
+    "Python.app_old.executor": "Debug",
     "Python.auto-services.executor": "Debug",
     "Python.nyumba.executor": "Debug",
     "Python.rentize.executor": "Debug",
     "Python.rentize_copy.executor": "Debug",
-    "Python.server.executor": "Run",
+    "Python.server.executor": "Debug",
     "Python.services.executor": "Debug",
     "Python.tree.executor": "Run",
     "Python.water.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "main",
     "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "D:/mutall_projects/rentize",
+    "last_opened_file_path": "D:/mutall_projects/rentize/v/code",
     "settings.editor.selected.configurable": "preferences.pluginManager"
   }
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\mutall_projects\rentize\v\code" />
+      <recent name="D:\mutall_projects\rentize" />
       <recent name="D:\mutall_projects\nyumba\v\presentation_backup" />
       <recent name="D:\mutall_projects\nyumba" />
       <recent name="D:\mutall_projects\nyumba\v\code" />
-      <recent name="D:\mutall_projects\nyumba\v\lab" />
     </key>
   </component>
   <component name="RunManager">
@@ -182,6 +184,16 @@
           <url>file://$PROJECT_DIR$/v1/code/app.py</url>
           <line>17</line>
           <option name="timeStamp" value="22" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/v2/code/app.py</url>
+          <line>45</line>
+          <option name="timeStamp" value="23" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/v/code/app_old.py</url>
+          <line>45</line>
+          <option name="timeStamp" value="28" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>
