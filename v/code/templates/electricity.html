@@ -1,90 +1,95 @@
 <!--
-  Extending the base HTML template.-->
-  {% extends "base.html" %}
-  <!--
-    Customize the title of the page.-->
-  {% block title %}Electricity - Rentize{% endblock %}
-  <!--
-    The form for user input-->
-  {% block generate %}
-      <form action="{{ request.url_for('electricity_page') }}" method="get">
-  
-          <label for="month">Month:</label>
-          <input type="number" id="month" name="month" min="1" max="12" required>
-  
-          <label for="year">Year:</label>
-          <input type="number" id="year" name="year" min="2010" max="9999" required>
-  
-          <button type="submit">Generate</button>
-      </form> 
-  {% endblock %}
-  <!--
-    Display ebills_table if user generates the all bills. -->
-  {% block content %}
-      <div>
-          <h1>All Electricity Bills</h1>
-  
-          {% if ebills %}
-              {{ ebills | safe }}
-          {% else %}
-              <p>No bills generated yet. Please enter year and month above.</p>
-          {% endif %}
-      </div>
-  {% endblock %}
-  <!--
-    Display client, unattended, and service electricity bills-->
-  {% block service_select %}
-      {% if ebills %}
-      <button type="button" onclick="show_service('client')">Client bills</button>
-      <button type="button" onclick="show_service('unattended')">Unattended bills</button>
-      <button type="button" onclick="show_service('service')">Service bills</button>
-      {% endif %}
-  {% endblock %}
-  
-  {% block service %}
-      <div id="service_content">
-          <!-- Service tables will be displayed here -->
-      </div>
-  
-      <!-- Hidden divs containing the table data -->
-      <div id="client_table">
-          {% if client_ebills %}
-              <h2>Client Electricity Bills</h2>
-              {{ client_ebills | safe }}
-          {% endif %}
-      </div>
-  
-      <div id="unattended_table">
-          {% if unattended_ebills %}
-              <h2>Unattended Electricity Bills</h2>
-              {{ unattended_ebills | safe }}
-          {% endif %}
-      </div>
-  
-      <div id="service_table">
-          {% if service_ebills %}
-              <h2>Service Electricity Bills</h2>
-              {{ service_ebills | safe }}
-          {% endif %}
-      </div>
-  {% endblock %}
-  
-  {% block extra_scripts %}
-  <script>
-      function show_service(type) {
-          // Get the content container.
-          const content_div = document.getElementById('service_content');
-          //
-          // Get the source table based on type.
-          const source_div = document.getElementById(type + '_table');
-          //
-          // Replace the content with the selected service table
-          if (source_div) {
+Extending the base HTML template.-->
+{% extends "base.html" %}
+<!--
+Customize the title of the page.-->
+{% block title %}Electricity - Rentize{% endblock %}
+<!--
+The form for user input-->
+{% block generate %}
+    <form action="{{ request.url_for('electricity_page') }}" method="get">
+
+        <label for="month">Month:</label>
+        <input type="number" id="month" name="month" min="1" max="12" required>
+
+        <label for="year">Year:</label>
+        <input type="number" id="year" name="year" min="2010" max="9999" required>
+
+        <button type="submit">Generate</button>
+    </form> 
+{% endblock %}
+<!--
+Display ebills_table if user generates the all bills. -->
+{% block content %}
+    <div>
+        {% if ebills %}
+            <h2>All Electricity Bills</h2>
+            {{ ebills | safe }}
+        {% else %}
+            <p>No bills generated yet. Please enter year and month above.</p>
+        {% endif %}
+    </div>
+{% endblock %}
+<!--
+Display client, unattended, and service electricity bills buttons to display respective tables.-->
+{% block service_select %}
+    {% if ebills %}
+        <button type="button" onclick="show_service('client')">Client bills</button>
+        <button type="button" onclick="show_service('unattended')">Unattended bills</button>
+        <button type="button" onclick="show_service('service')">Service bills</button>
+    {% endif %}
+{% endblock %}
+<!--
+Display the selected table based on the button the user clicked.-->
+{% block service %}
+    <div id="service_content">
+        <!-- 
+        The specified ebill tables below will be displayed inside this div. -->
+    </div>
+    <!-- 
+    The HIDDEN tables containing the client_ebills, unattended_ebills and service_ebills that
+    will be placed in the 'service_content' div above. -->
+    <div id="client_table">
+        {% if client_ebills %}
+            <h2>Client Electricity Bills</h2>
+            {{ client_ebills | safe }}
+        {% endif %}
+    </div>
+
+    <div id="unattended_table">
+        {% if unattended_ebills %}
+            <h2>Unattended Electricity Bills</h2>
+            {{ unattended_ebills | safe }}
+        {% endif %}
+    </div>
+
+    <div id="service_table">
+        {% if service_ebills %}
+            <h2>Service Electricity Bills</h2>
+            {{ service_ebills | safe }}
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // 
+    // Select the specific tables to be displayed.
+    function show_service(type) {
+        //
+        // Get the service_content div.
+        const content_div = document.getElementById('service_content');
+        //
+        // Get the specific div that has the matching table.
+        const source_div = document.getElementById(type + '_table');
+        //
+        // Replace the content with the selected div with matching table.
+        if (source_div) {
             content_div.innerHTML = source_div.innerHTML;
-          } 
-          else {
+        } 
+        else {
             content_div.innerHTML = '<p>No data available.</p>';
-          }
-      }
+        }
+    }
   </script>
   {% endblock %}

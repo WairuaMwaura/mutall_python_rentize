@@ -70,7 +70,8 @@ Resize the buttons */
 button {
     font-size: smaller;
 }
-
+/* 
+Hide the sub-service tables. */
 #client_table, #unattended_table, #service_table {
     display: none;
 }

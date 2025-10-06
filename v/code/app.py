@@ -20,10 +20,14 @@ from rentize import Client, Electricity
 # Instantiate the FastAPI to a variable.
 my_app = FastAPI()
 # 
-# Mount a folder for static files.
+# Mount a folder for static files. 
+# Anytime someone visits /static/... in the browser, serve them files from this folder.
+# It creates an actual route (/static) in the app.
 my_app.mount("/static", StaticFiles(directory="static"), name="static")
 #
 # Point FastAPI to the templates folder.
+# When I want to render an HTML page, go look for template files inside this folder.
+# The app will load index.html from the templates/ folder, render it (fill placeholders, variables), then serve it to the user.
 templates = Jinja2Templates(directory="templates")
 #
 # Home page to the app - returns a HTML page.
@@ -37,7 +41,9 @@ def index(request: Request):
     )
     
 # 
-# Display electricity page in 2 modes: initial load and with user generating tables.
+# Display electricity page in 2 modes: 
+#   1. initial load and 
+#   2. with user generating tables (i.e., all_ebills, client_ebills etc).
 @my_app.get("/electricity", response_class=HTMLResponse, name="electricity_page")
 async def electricity(request: Request, month: int | None = None, year: int = None):
     #
@@ -81,7 +87,7 @@ async def electricity(request: Request, month: int | None = None, year: int = No
         # Convert the DataFrame above to a HTML table.
         service_ebills_table = service_ebills_df.to_html(index=True)
     #
-    # Pass both request and ebills_table to electricity.html template.
+    # Pass both request and all the ebill tables to electricity.html template.
     return templates.TemplateResponse(
         "electricity.html",
         {
