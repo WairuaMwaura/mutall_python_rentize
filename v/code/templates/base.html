@@ -34,6 +34,10 @@
     <div class="all_container">
         {% block content %}{% endblock %}
     </div>
+    <!--  Section to select a sub-service.  -->
+    <div class="service_select_container">
+      {% block service_select %} {% endblock %}
+    </div>
     <!--  Page-specific broken down services.  -->
     <div class="service_container">
         {% block service %} {% endblock %}

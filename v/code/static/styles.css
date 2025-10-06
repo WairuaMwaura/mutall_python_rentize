@@ -8,11 +8,11 @@ body {
     display: grid;
     grid-template-areas:
         "logo nav user_input user_input"
-        "all all service service"
+        "all all service_select service_select"
         "all all service service"
         "footer footer footer footer";
     grid-template-columns: 100px repeat(3, 1fr);
-    grid-template-rows: 1fr 8fr 0.5fr;
+    grid-template-rows: 1fr 0.5fr 8fr 0.5fr;
 }
 /*
 Section for the logo. */
@@ -40,15 +40,37 @@ Section for displaying the main service the user generated. */
     overflow-y: auto;
     overflow-x: auto;
 }
+/* 
+Section displaying the selection options*/
+.service_select_container {
+    grid-area: service_select;
+    border: 1px solid;
+ }
 /*
 Section for displaying the categories of the service the user generated. */
 .service_container {
     grid-area: service;
     border: 1px solid #003263;
+    overflow-y: auto;
+    overflow-x: auto;
 }
 /*
 Section for the footer. */
 .footer_container {
     grid-area: footer;
     border: 1px solid #003263;
+}
+/* 
+Resize the text size */
+body{
+    font-size: .6em;
+}
+/* 
+Resize the buttons */
+button {
+    font-size: smaller;
+}
+
+#client_table, #unattended_table, #service_table {
+    display: none;
 }
