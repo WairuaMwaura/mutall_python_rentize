@@ -1,19 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <!--
-      The title is customizable from page to page.-->
-    <title>{% block title %}Rentize{% endblock %}</title>
-    <!--
-      Link the HTML to the stylesheets in the static folder.-->
-    <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', path='table.css') }}">
-    <!--
-      Allow extra styling for each page. -->
-    {% block extra_styles %}{% endblock %}
-</head>
-<body>
+  <head>
+      <meta charset="UTF-8">
+      <!--
+        The title is customizable from page to page.-->
+      <title>{% block title %}Rentize{% endblock %}</title>
+      <!--
+        Link the HTML to the stylesheets in the static folder.-->
+      <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+      <link rel="stylesheet" href="{{ url_for('static', path='table.css') }}">
+      <!--
+        Allow extra styling for each page. -->
+      {% block extra_styles %}{% endblock %}
+  </head>
+  <body>
     <!--
       Navigation link to the homepage.-->
     <div class="logo_container">
@@ -52,5 +52,5 @@
     <!--
       Allow for extra JS scripts. -->
     {% block extra_scripts %}{% endblock %}
-</body>
+  </body>
 </html>

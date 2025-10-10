@@ -101,9 +101,9 @@ class Client:
         if current_period.empty:
             raise ValueError("No matching period found for that month in the database")
         #
-        # Get the row number and cutoff date and convert the latter to datetime format.
+        # Get the row number and cutoff date and convert the latter to datetime.datetime object format.
         row_number = current_period.iloc[0]["row_number"]
-        self.curr_cutoff = pd.to_datetime(current_period.iloc[0]["cutoff"])
+        self.curr_cutoff = pd.to_datetime(current_period.iloc[0]["cutoff"]).to_pydatetime()
         #
         # Get the cutoff date of the period just before the current one.
         #
@@ -112,7 +112,7 @@ class Client:
         previous_period = period_df[period_df["row_number"] == row_number - 1]
         #
         # Get the cutoff (date) from the previous period and convert it to datetime format.
-        self.prev_cutoff = pd.to_datetime(previous_period.iloc[0]["cutoff"])
+        self.prev_cutoff = pd.to_datetime(previous_period.iloc[0]["cutoff"]).to_pydatetime()
         #
         # Prepare agreements:
         #   - Impute null values on the 'terminated' column as "end date" (9999-12-31)
@@ -704,14 +704,21 @@ class Electricity(Service):
     def get_all_bills(self) -> DataFrame:
         kasa.execute(
             """
-            select
-                *
+            select distinct
+                ebill.ebill,
+                eaccount.num as `eaccount_num`,
+                emeter.new_num_2023_03 as `emeter_num`,
+                ebill.due_date,
+                ebill.current_amount
             from
                 ebill
+                inner join eaccount on ebill.eaccount = eaccount.eaccount
+                inner join elink on elink.eaccount = eaccount.eaccount
+                inner join emeter on elink.emeter = emeter.emeter
             where
-                year(ebill.due_date) = %s and
-                month(ebill.due_date) = %s
-            """, (self.client.year, self.client.month)
+                ebill.due_date > %s and
+                ebill.due_date <= %s
+            """, (self.client.prev_cutoff, self.client.curr_cutoff)
         )
         all_ebills: list[dict] = kasa.fetchall()
         all_ebills_df: DataFrame = DataFrame(all_ebills)
@@ -735,10 +742,11 @@ class Electricity(Service):
             """
             select distinct
                     client.client,
+                    client.name as `client_name`,
                     emeter.emeter,
-                    emeter.new_num_2023_03 as `emeter_no`,
+                    emeter.new_num_2023_03 as `emeter_num`,
                     eaccount.eaccount,
-                    eaccount.num as `eaccount_no`
+                    eaccount.num as `eaccount_num`
                 from
                     eaccount
                     inner join elink on elink.eaccount = eaccount.eaccount
@@ -762,18 +770,28 @@ class Electricity(Service):
             how="inner"
         ).merge(
             self.get_all_bills(),
-            on='eaccount'
+            on='eaccount_num'
         )
+        #
+        # Remove duplicate columns.
+        #
+        # drop all _y columns
+        active_clients_ebills_df = active_clients_ebills_df.loc[:,
+                 ~active_clients_ebills_df.columns.str.endswith('_y')]
+        #
+        # clean column names
+        active_clients_ebills_df.columns = active_clients_ebills_df.columns.str.replace('_x', '', regex=False)
         #
         # Get distinct ebills for active clients
         active_clients_ebills_df = active_clients_ebills_df.drop_duplicates(subset=['ebill'])
         #
         # Filter columns to show
         active_clients_ebills_df = active_clients_ebills_df[[
-            'client',
-            'emeter_no',
-            'eaccount_no',
+            'client_name',
             'ebill',
+            'eaccount_num',
+            'emeter_num',
+            'due_date',
             'current_amount'
         ]]
 
@@ -789,9 +807,9 @@ class Electricity(Service):
                 room.room,
                 room.uid as `room_uid`,
                 emeter.emeter,
-                emeter.new_num_2023_03 as `emeter_no`,
+                emeter.new_num_2023_03 as `emeter_num`,
                 eaccount.eaccount,
-                eaccount.num as `eaccount_no`
+                eaccount.num as `eaccount_num`
             from
                 eaccount
                 inner join elink on elink.eaccount = eaccount.eaccount
@@ -807,21 +825,32 @@ class Electricity(Service):
         # Get the ebills connected to a room.
         connected_rooms_bills_df = connected_rooms_df.merge(
             self.get_all_bills(),
-            on='eaccount'
+            on='eaccount_num'
         )
         #
         # Get the distinct ebills for the connected rooms.
         connected_rooms_bills_df = connected_rooms_bills_df.drop_duplicates(
             subset=['ebill'])
         #
+        # Remove duplicate columns.
+        #
+        # drop all _y columns
+        connected_rooms_bills_df = connected_rooms_bills_df.loc[:,
+                                   ~connected_rooms_bills_df.columns.str.endswith(
+                                       '_y')]
+        #
+        # clean column names
+        connected_rooms_bills_df.columns = connected_rooms_bills_df.columns.str.replace(
+            '_x', '', regex=False)
+        #
         # Filter columns to show.
         connected_rooms_bills_df = connected_rooms_bills_df[[
             'room',
             'room_uid',
             'emeter',
-            'emeter_no',
+            'emeter_num',
             'eaccount',
-            'eaccount_no',
+            'eaccount_num',
             'ebill',
             'current_amount'
         ]]
@@ -839,15 +868,26 @@ class Electricity(Service):
             how='left'
         )
         #
+        # Remove duplicate columns.
+        #
+        # drop all _y columns
+        unattended_bills_df = unattended_bills_df.loc[:,
+                                   ~unattended_bills_df.columns.str.endswith(
+                                       '_y')]
+        #
+        # clean column names
+        unattended_bills_df.columns = unattended_bills_df.columns.str.replace(
+            '_x', '', regex=False)
+        #
         # 2. Keep only those ebills that didn't have a client column.
-        unattended_bills_df = unattended_bills_df[unattended_bills_df["client"].isna()]
+        unattended_bills_df = unattended_bills_df[unattended_bills_df["client_name"].isna()]
         unattended_bills_df = unattended_bills_df[[
-            "room",
             "room_uid",
-            "eaccount_no_x",
-            "emeter_no_x",
             "ebill",
-            "current_amount_x"
+            "eaccount_num",
+            "emeter_num",
+            "due_date",
+            "current_amount"
         ]]
 
         return unattended_bills_df
@@ -865,11 +905,23 @@ class Electricity(Service):
         # 2. Keep only those where occupied room ebills didn't match.
         service_ebills_df = \
         service_ebills_df[service_ebills_df["room"].isna()]
+        #
+        # Remove duplicate columns.
+        #
+        # drop all _y columns
+        service_ebills_df = service_ebills_df.loc[:,
+                              ~service_ebills_df.columns.str.endswith(
+                                  '_y')]
+        #
+        # clean column names
+        service_ebills_df.columns = service_ebills_df.columns.str.replace(
+            '_x', '', regex=False)
         service_ebills_df = service_ebills_df[[
-            "emeter",
-            "eaccount_x",
             "ebill",
-            "current_amount_x"
+            "eaccount_num",
+            "emeter_num",
+            "due_date",
+            "current_amount"
         ]]
         return service_ebills_df
 

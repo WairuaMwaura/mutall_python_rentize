@@ -62,14 +62,14 @@ Section for the footer. */
 }
 /* 
 Resize the text size */
-body{
+/* body{
     font-size: .6em;
-}
+} */
 /* 
 Resize the buttons */
-button {
+/* button {
     font-size: smaller;
-}
+} */
 /* 
 Hide the sub-service tables. */
 #client_table, #unattended_table, #service_table {
