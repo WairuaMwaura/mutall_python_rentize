@@ -704,12 +704,12 @@ class Electricity(Service):
     def get_all_bills(self) -> DataFrame:
         kasa.execute(
             """
-            select distinct
+            select 
                 ebill.ebill,
                 eaccount.num as `eaccount_num`,
                 emeter.new_num_2023_03 as `emeter_num`,
                 ebill.due_date,
-                ebill.current_amount
+                ebill.current_amount    
             from
                 ebill
                 inner join eaccount on ebill.eaccount = eaccount.eaccount
@@ -717,7 +717,8 @@ class Electricity(Service):
                 inner join emeter on elink.emeter = emeter.emeter
             where
                 ebill.due_date > %s and
-                ebill.due_date <= %s
+                ebill.due_date <= %s and
+                elink.end_date = "9999-12-31"
             """, (self.client.prev_cutoff, self.client.curr_cutoff)
         )
         all_ebills: list[dict] = kasa.fetchall()
@@ -787,8 +788,8 @@ class Electricity(Service):
         #
         # Filter columns to show
         active_clients_ebills_df = active_clients_ebills_df[[
-            'client_name',
             'ebill',
+            'client_name',
             'eaccount_num',
             'emeter_num',
             'due_date',
@@ -805,7 +806,7 @@ class Electricity(Service):
             """
             select
                 room.room,
-                room.uid as `room_uid`,
+                room.title as `room_title`,
                 emeter.emeter,
                 emeter.new_num_2023_03 as `emeter_num`,
                 eaccount.eaccount,
@@ -846,12 +847,13 @@ class Electricity(Service):
         # Filter columns to show.
         connected_rooms_bills_df = connected_rooms_bills_df[[
             'room',
-            'room_uid',
+            'room_title',
             'emeter',
             'emeter_num',
             'eaccount',
             'eaccount_num',
             'ebill',
+            'due_date',
             'current_amount'
         ]]
 
@@ -882,8 +884,8 @@ class Electricity(Service):
         # 2. Keep only those ebills that didn't have a client column.
         unattended_bills_df = unattended_bills_df[unattended_bills_df["client_name"].isna()]
         unattended_bills_df = unattended_bills_df[[
-            "room_uid",
             "ebill",
+            "room_title",
             "eaccount_num",
             "emeter_num",
             "due_date",
@@ -917,8 +919,8 @@ class Electricity(Service):
         service_ebills_df.columns = service_ebills_df.columns.str.replace(
             '_x', '', regex=False)
         service_ebills_df = service_ebills_df[[
-            "ebill",
             "eaccount_num",
+            "ebill",
             "emeter_num",
             "due_date",
             "current_amount"

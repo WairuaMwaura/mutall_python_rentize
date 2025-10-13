@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", (): void => {
       sendBtn.addEventListener("click", async (): Promise<void> => {
         //
         // 1️⃣ Get the user's input field and ensure it's an HTMLInputElement
-        const userInput: HTMLInputElement | null = document.getElementById("userInput");
+        const userInput: HTMLInputElement | null = document.querySelector("#userInput");
         //
         // If the input element is missing, stop execution.
         if (!userInput) return;

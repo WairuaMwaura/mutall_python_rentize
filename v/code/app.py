@@ -26,7 +26,7 @@ my_app = FastAPI()
 # Mount a folder for static files. 
 # Anytime someone visits /static/... in the browser, serve them files from this folder.
 # It creates an actual route (/static) in the app.
-my_app.mount("/static", StaticFiles(directory="static"), name="static")
+my_app.mount("/static", StaticFiles(directory="../static"), name="static")
 #
 # Point FastAPI to the templates folder.
 # When I want to render an HTML page, go look for template files inside this folder.
@@ -69,7 +69,7 @@ async def electricity(request: Request):
     num_rows = ebills_df.shape[0]
     #
     # Convert the DataFrame above to a HTML table.
-    ebills_table = ebills_df.to_html(index=True)
+    ebills_table = ebills_df.to_html(index=False)
     #
     # Define the structure of the HTML to be sent to the template.
     html_content = f"""
@@ -85,7 +85,7 @@ async def electricity(request: Request):
     client_num = client_ebills_df.shape[0]
     #
     # Convert the DataFrame above to a HTML table.
-    client_ebills_table = client_ebills_df.to_html(index=True)
+    client_ebills_table = client_ebills_df.to_html(index=False)
     #
     # Define the structure of the HTML to be sent to the template.
     client_html_content = f"""
@@ -132,7 +132,7 @@ async def all_ebills(request: Request):
     num_rows = ebills_df.shape[0]
     #
     # Convert the DataFrame above to a HTML table.
-    ebills_table = ebills_df.to_html(index=True)
+    ebills_table = ebills_df.to_html(index=False)
     # 
     # Define the structure of the HTML to be sent to the template.
     html_content = f"""
@@ -173,7 +173,7 @@ async def client_ebills(request: Request):
     num_rows = client_ebills_df.shape[0]
     #
     # Convert the DataFrame above to a HTML table.
-    client_ebills_table = client_ebills_df.to_html(index=True)
+    client_ebills_table = client_ebills_df.to_html(index=False)
     #
     # Define the structure of the HTML to be sent to the template.
     html_content = f"""
@@ -214,7 +214,7 @@ async def unattended_ebills(request: Request):
     num_rows = unattended_ebills_df.shape[0]
     #
     # Convert the DataFrame above to a HTML table.
-    unattended_ebills_table = unattended_ebills_df.to_html(index=True)
+    unattended_ebills_table = unattended_ebills_df.to_html(index=False)
     #
     # Define the structure of the HTML to be sent to the template.
     html_content = f"""
@@ -254,7 +254,7 @@ async def service_ebills(request: Request):
     num_rows = service_ebills_df.shape[0]
     #
     # Convert the DataFrame above to a HTML table.
-    service_ebills_table = service_ebills_df.to_html(index=True)
+    service_ebills_table = service_ebills_df.to_html(index=False)
     #
     # Define the structure of the HTML to be sent to the template.
     html_content = f"""
@@ -265,32 +265,32 @@ async def service_ebills(request: Request):
 
     return HTMLResponse(content=html_content)
 
-# #
-# # Sample page showing dynamic content loading.
-# @my_app.get("/reactive", response_class=HTMLResponse)
-# def reactive_page(request: Request):
-#     """Serves the reactive UI page"""
-#     return templates.TemplateResponse(
-#         "reactive_ui.html",
-#         {
-#             "request": request
-#         }
-#     )
 #
-# # Your existing /process endpoint is good!
-# @my_app.post("/process", response_class=HTMLResponse)
-# async def process_input(request: Request) -> HTMLResponse:
-#     """
-#     Receives JSON from the frontend and returns HTML content.
-#     """
-#     # Read incoming JSON data from the request body
-#     data: dict = await request.json()
-#
-#     # Extract the "input" value safely
-#     user_input: str = data.get("input", "")
-#
-#     # Simulate processing (replace with your logic)
-#     result_html: str = f"<p>You typed <b>{user_input}</b>: Here it is in uppercase <b>{user_input.upper()}</b></p>"
-#
-#     # Return the processed result as plain HTML
-#     return HTMLResponse(content=result_html)
+# Sample page showing dynamic content loading.
+@my_app.get("/reactive", response_class=HTMLResponse)
+def reactive_page(request: Request):
+    """Serves the reactive UI page"""
+    return templates.TemplateResponse(
+        "reactive_ui.html",
+        {
+            "request": request
+        }
+    )
+
+# Your existing /process endpoint is good!
+@my_app.post("/process", response_class=HTMLResponse)
+async def process_input(request: Request) -> HTMLResponse:
+    """
+    Receives JSON from the frontend and returns HTML content.
+    """
+    # Read incoming JSON data from the request body
+    data: dict = await request.json()
+
+    # Extract the "input" value safely
+    user_input: str = data.get("input", "")
+
+    # Simulate processing (replace with your logic)
+    result_html: str = f"<p>You typed <b>{user_input}</b>: Here it is in uppercase <b>{user_input.upper()}</b></p>"
+
+    # Return the processed result as plain HTML
+    return HTMLResponse(content=result_html)
