@@ -1,4 +1,20 @@
 document.addEventListener("DOMContentLoaded", () => {
+    // 
+    // Set the date picker default placeholder to have current month's values.
+    // 
+    // Get current date
+    const today: Date = new Date();
+    // 
+    // Format to YYYY-MM (e.g. "2025-10")
+    const year_month: string = today.toISOString().slice(0, 7);
+    // 
+    // Get the input element by ID
+    const year_month_input: HTMLInputElement | null = document.querySelector('#year_month');
+
+    // Set the input value if the element exists
+    if (year_month_input) {
+        year_month_input.value = year_month;
+    }
     //
     // Step 1: Select the "Generate" button element from the HTML document using its ID.
     // This allows you to access and interact with the button element from the JavaScript code.
@@ -10,13 +26,12 @@ document.addEventListener("DOMContentLoaded", () => {
         generate_btn.onclick = async () => {
             //
             // Step 3: Select the input field elements where the user enters their data.
-            const month_field: HTMLInputElement | null = document.querySelector("#month");
-            const year_field: HTMLInputElement | null = document.querySelector("#year");
+            const year_month_field: HTMLInputElement | null = document.querySelector("#year_month");
             //
             // Step 4: Retrieve the actual values typed by the user in the input fields.
-            if (month_field && year_field) {
-                const month_value: string = month_field.value;
-                const year_value: string = year_field.value;
+            if (year_month_field) {
+                const month_year_value: string = year_month_field.value;
+                const [year_value, month_value] = month_year_value.split('-')
                 //
                 // Call the function to fetch and display bills
                 await get_all_ebills(month_value, year_value);
@@ -57,7 +72,6 @@ document.addEventListener("DOMContentLoaded", () => {
         // use response.text() instead of response.json() to get the HTML content as a string.
         // Store this HTML string in a variable for later use.
         const html_table: string = await response.text();
-        console.log(html_table)
         // 
         // Step 9: Locate the 'all_ebills' <div> in the DOM where you want to display the server's response.
         // This div serves as the target container for dynamically inserted HTML.
@@ -78,13 +92,11 @@ document.addEventListener("DOMContentLoaded", () => {
         client_btn.onclick = async () => {
             // 
             // Select the input fields.
-            const month_field: HTMLInputElement | null = document.querySelector("#month");
-            const year_field: HTMLInputElement | null = document.querySelector("#year");
-                // 
+            const year_month_field: HTMLInputElement | null = document.querySelector("#year_month");    // 
                 // Validate that the input fields have values and use them to fetch the client ebills
-                if (month_field && year_field) {
-                    const month_value: string = month_field.value;
-                    const year_value: string = year_field.value;
+                if (year_month_field) {
+                    const month_year_value: string = year_month_field.value;
+                    const [year_value, month_value] = month_year_value.split('-')
                     await get_client_ebills(month_value, year_value);
                 } 
         }
@@ -118,7 +130,6 @@ document.addEventListener("DOMContentLoaded", () => {
         //
         // Get the HTML table sent by FastAPI
         const html_table: string = await response.text();
-        console.log(html_table)
         // 
         // Render the returned HTML above in the 'service_content' div.
         const service_content_div: HTMLDivElement | null = document.querySelector("#service_content");
@@ -138,13 +149,11 @@ document.addEventListener("DOMContentLoaded", () => {
         unattended_btn.onclick = async () => {
             // 
             // Select the input fields.
-            const month_field: HTMLInputElement | null = document.querySelector("#month");
-            const year_field: HTMLInputElement | null = document.querySelector("#year");
-                // 
-                // Validate that the input fields have values and use them to fetch the unattended ebills
-                if (month_field && year_field) {
-                    const month_value: string = month_field.value;
-                    const year_value: string = year_field.value;
+            const year_month_field: HTMLInputElement | null = document.querySelector("#year_month");    // 
+                // Validate that the input fields have values and use them to fetch the client ebills
+                if (year_month_field) {
+                    const month_year_value: string = year_month_field.value;
+                    const [year_value, month_value] = month_year_value.split('-')
                     await get_unattended_ebills(month_value, year_value);
                 } 
         }
@@ -178,7 +187,6 @@ document.addEventListener("DOMContentLoaded", () => {
         //
         // Get the HTML table sent by FastAPI
         const html_table: string = await response.text();
-        console.log(html_table)
         // 
         // Render the returned HTML above in the 'service_content' div.
         const service_content_div: HTMLDivElement | null = document.querySelector("#service_content");
@@ -195,13 +203,11 @@ document.addEventListener("DOMContentLoaded", () => {
         service_btn.onclick = async () => {
             // 
             // Select the input fields.
-            const month_field: HTMLInputElement | null = document.querySelector("#month");
-            const year_field: HTMLInputElement | null = document.querySelector("#year");
-                // 
-                // Validate that the input fields have values and use them to fetch the service ebills
-                if (month_field && year_field) {
-                    const month_value: string = month_field.value;
-                    const year_value: string = year_field.value;
+            const year_month_field: HTMLInputElement | null = document.querySelector("#year_month");    // 
+                // Validate that the input fields have values and use them to fetch the client ebills
+                if (year_month_field) {
+                    const month_year_value: string = year_month_field.value;
+                    const [year_value, month_value] = month_year_value.split('-')
                     await get_service_ebills(month_value, year_value);
                 } 
         }
@@ -235,7 +241,6 @@ document.addEventListener("DOMContentLoaded", () => {
         //
         // Get the HTML table sent by FastAPI
         const html_table: string = await response.text();
-        console.log(html_table)
         // 
         // Render the returned HTML above in the 'service_content' div.
         const service_content_div: HTMLDivElement | null = document.querySelector("#service_content");

@@ -14,6 +14,28 @@ body {
     grid-template-columns: 100px repeat(3, 1fr);
     grid-template-rows: 1fr 0.5fr 8fr 0.5fr;
 }
+/* 
+Use media query for mobile layout*/
+@media (max-width: 768px) {
+    /* 
+    Display the divs as one column */
+    body {
+      grid-template-areas:
+        "user_input"
+        "service_select"
+        "all"
+        "service"
+        "footer";
+      grid-template-columns: 1fr;
+      grid-template-rows: auto;
+    }
+  
+    /* 
+    Hide logo and nav */
+    .logo_container, .nav_container {
+      display: none;
+    }
+  }
 /*
 Section for the logo. */
 .logo_container {
