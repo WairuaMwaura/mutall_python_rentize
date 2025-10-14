@@ -25,8 +25,8 @@ def init() -> tuple[PooledMySQLConnection, MySQLCursorDict]:
     # - Store database connection configuration arguments in a dictionary
     config: dict[str, str] = {
         'host': 'localhost',
-        'user': 'root',
-        'password': '',
+        'user': 'mutall',
+        'password': 'mutall@2023',
         'database': 'mutall_rental',
     }
     #
