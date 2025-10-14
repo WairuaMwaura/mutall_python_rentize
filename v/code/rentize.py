@@ -919,8 +919,8 @@ class Electricity(Service):
         service_ebills_df.columns = service_ebills_df.columns.str.replace(
             '_x', '', regex=False)
         service_ebills_df = service_ebills_df[[
-            "eaccount_num",
             "ebill",
+            "eaccount_num",
             "emeter_num",
             "due_date",
             "current_amount"
