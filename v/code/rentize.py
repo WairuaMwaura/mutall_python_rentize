@@ -27,7 +27,7 @@ def init() -> tuple[PooledMySQLConnection, MySQLCursorDict]:
         'host': 'localhost',
         'user': 'mutall',
         'password': 'mutall@2023',
-        'database': 'mutall_rental',
+        'database': 'mutallco_rental',
     }
     #
     # - Unpack the configurations dictionary above to connect to the database
