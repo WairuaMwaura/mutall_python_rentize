@@ -719,6 +719,8 @@ class Electricity(Service):
                 ebill.due_date > %s and
                 ebill.due_date <= %s and
                 elink.end_date = "9999-12-31"
+            order by
+                ebill.ebill
             """, (self.client.prev_cutoff, self.client.curr_cutoff)
         )
         all_ebills: list[dict] = kasa.fetchall()
@@ -795,6 +797,11 @@ class Electricity(Service):
             'due_date',
             'current_amount'
         ]]
+        #
+        # Sort by ebill
+        active_clients_ebills_df = active_clients_ebills_df.sort_values(
+            by='ebill'
+        )
 
         return active_clients_ebills_df
 
@@ -807,6 +814,7 @@ class Electricity(Service):
             select
                 room.room,
                 room.title as `room_title`,
+                room.uid as `room_uid`,
                 emeter.emeter,
                 emeter.new_num_2023_03 as `emeter_num`,
                 eaccount.eaccount,
@@ -847,6 +855,7 @@ class Electricity(Service):
         # Filter columns to show.
         connected_rooms_bills_df = connected_rooms_bills_df[[
             'room',
+            'room_uid',
             'room_title',
             'emeter',
             'emeter_num',
@@ -885,12 +894,18 @@ class Electricity(Service):
         unattended_bills_df = unattended_bills_df[unattended_bills_df["client_name"].isna()]
         unattended_bills_df = unattended_bills_df[[
             "ebill",
+            "room_uid",
             "room_title",
             "eaccount_num",
             "emeter_num",
             "due_date",
             "current_amount"
         ]]
+        #
+        # Sort by ebill
+        unattended_bills_df = unattended_bills_df.sort_values(
+            by='ebill'
+        )
 
         return unattended_bills_df
 
@@ -925,6 +940,12 @@ class Electricity(Service):
             "due_date",
             "current_amount"
         ]]
+        #
+        # Sort by ebill
+        service_ebills_df = service_ebills_df.sort_values(
+            by='ebill'
+        )
+
         return service_ebills_df
 
 
