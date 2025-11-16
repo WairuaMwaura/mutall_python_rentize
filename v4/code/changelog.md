@@ -2,8 +2,8 @@
 All notable changes to this project will be documented in this file.
 
 ## date created: 
-2025-11-12
+2025-09-30
 
 ### Changed 
-- Added an endpoint to read server access and error logs
-- 
+- Report period logic
+- Created interactive user interface.

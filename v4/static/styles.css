@@ -1,0 +1,113 @@
+html, body {
+        height: 100%;
+        margin: 0;
+        font-size: 1.15rem;
+}
+
+/* use a grid system to layout the whole page */
+body {
+    display: grid;
+    grid-template-areas:
+        "user_input user_input user_input user_input"
+        "all all service_select service_select"
+        "all all service service"
+        "footer footer footer footer";
+    grid-template-columns:  .8fr, repeat(3, 1fr);
+    grid-template-rows: 1fr 0.5fr 8fr 0.5fr;
+}
+/* 
+Use media query for mobile layout*/
+@media (max-width: 768px) {
+    /* 
+    Display the divs as one column */
+    body {
+      grid-template-areas:
+        "user_input"
+        "service_select"
+        "all"
+        "service"
+        "footer";
+      grid-template-columns: 1fr;
+      grid-template-rows: auto;
+    }
+  }
+/*
+Section for the logo. */
+.logo_container {
+    grid-area: logo;
+    border: 1px solid #003263;
+}
+/*
+Section for the navigation of the webapp. */
+.nav_container {
+    grid-area: nav;
+    border: 1px solid #003263;
+}
+/*
+Section for the user sending input to the server. */
+.user_input_container {
+    grid-area: user_input;
+    border: 1px solid #003263;
+}
+/*
+Section for displaying the main service the user generated. */
+.all_container {
+    grid-area: all;
+    border: 1px solid #003263;
+    overflow-y: auto;
+    overflow-x: auto;
+}
+/* 
+Section displaying the selection options*/
+.service_select_container {
+    grid-area: service_select;
+    border: 1px solid;
+ }
+/*
+Section for displaying the categories of the service the user generated. */
+.service_container {
+    grid-area: service;
+    border: 1px solid #003263;
+    overflow-y: auto;
+    overflow-x: auto;
+}
+/*
+Section for the footer. */
+.footer_container {
+    grid-area: footer;
+    border: 1px solid #003263;
+}
+/* 
+Hide the sub-service tables. */
+#client_table, #unattended_table, #service_table {
+    display: none;
+}
+/* 
+Right-align the last column (current_amount) */
+.table td:last-child {
+    text-align: right;
+}
+/* 
+Show hovering effect on rows */
+.table tbody tr:hover {
+    background-color: #f5f5f5;
+}
+/*
+Center text, headings, and inline elements */
+.user_input_container,
+#all_ebills,
+#service_content,
+.footer_container {
+  text-align: center;
+}
+/*
+Center the table horizontally */
+#all_ebills table,
+#service_content table {
+  margin: 0 auto;
+}
+/* 
+Resize the Input and Buttons */
+input, button {
+    font-size: 1.5rem;
+}

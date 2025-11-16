@@ -9,13 +9,9 @@ from fastapi.templating import Jinja2Templates
 #   that my HTML references directly like CSS and JavaScript files).
 from fastapi.staticfiles import StaticFiles
 #
-# Import HTMLResponse (i.e., html tables) or PlainTextResponse (for access and
-# error logs) class to instruct FastAPI to return HTML content instead of JSON
-# by default.
-from fastapi.responses import HTMLResponse, PlainTextResponse
-#
-# Import os to work with file paths
-import os
+# Import HTMLResponse class to instruct FastAPI to return HTML content instead
+#   of JSON by default.
+from fastapi.responses import HTMLResponse
 # 
 # Import my classes.
 from rentize import Client, Electricity
@@ -61,7 +57,7 @@ async def electricity(request: Request):
     year = today.year
     #
     # Instantiate the Client class using the dates above.
-    client = Client(10, 2025)
+    client = Client(month, year)
     #
     # Instantiate the Electricty class using the client.
     e_class = Electricity(client)
@@ -269,57 +265,32 @@ async def service_ebills(request: Request):
 
     return HTMLResponse(content=html_content)
 
+# #
+# # Sample page showing dynamic content loading.
+# @my_app.get("/reactive", response_class=HTMLResponse)
+# def reactive_page(request: Request):
+#     """Serves the reactive UI page"""
+#     return templates.TemplateResponse(
+#         "reactive_ui.html",
+#         {
+#             "request": request
+#         }
+#     )
 #
-# Endpoint to read error and access logs
-@my_app.get("/logs/{log_type}", response_class=PlainTextResponse)
-async def read_log(log_type: str):
-    #
-    # Get the directory where this Python file (i.e., app.py) is located
-    # __file__ is the path to the current Python file
-    # os.path.dirname() extracts just the directory part of that path
-    # Join the directory path (i.e., "v/code/logs/")
-    logs_dir: str = os.path.join(os.path.dirname(__file__), "logs")
-    #
-    # Create the full path to the access.log file
-    # os.path.join() combines directory path and filename properly (i.e.,
-    # "v/code/logs/access.log")
-    access_log_path: str = os.path.join(logs_dir, "access.log")
-    #
-    # Create the full path to the error.log file
-    error_log_path: str = os.path.join(logs_dir, "error.log")
-    #
-    # Check which log the user is requesting for
-    if log_type == "access":
-        #
-        # Open the log file in read mode ("r")
-        # "with" ensures the file is properly closed after reading
-        with open(access_log_path, "r") as f:
-            #
-            # Read all lines from the file into a list
-            lines = f.readlines()
-            #
-            # Get only the last 200 lines using negative indexing
-            # [-200:] means "from 200 lines before the end to the end"
-            last_200_lines = lines[-200:]
-        #
-        # Join all the lines back into a single string
-        # "".join() combines list items with no separator (they already have \n)
-        return "".join(last_200_lines)
-    elif log_type == "error":
-        #
-        # Open the log file in read mode ("r")
-        # "with" ensures the file is properly closed after reading
-        with open(error_log_path, "r") as f:
-            #
-            # Read all lines from the file into a list
-            lines = f.readlines()
-            #
-            # Get only the last 200 lines using negative indexing
-            # [-200:] means "from 200 lines before the end to the end"
-            last_200_lines = lines[-200:]
-        #
-        # Join all the lines back into a single string
-        # "".join() combines list items with no separator (they already have \n)
-        return "".join(last_200_lines)
-    else:
-        return "No log with such name"
+# # Your existing /process endpoint is good!
+# @my_app.post("/process", response_class=HTMLResponse)
+# async def process_input(request: Request) -> HTMLResponse:
+#     """
+#     Receives JSON from the frontend and returns HTML content.
+#     """
+#     # Read incoming JSON data from the request body
+#     data: dict = await request.json()
+#
+#     # Extract the "input" value safely
+#     user_input: str = data.get("input", "")
+#
+#     # Simulate processing (replace with your logic)
+#     result_html: str = f"<p>You typed <b>{user_input}</b>: Here it is in uppercase <b>{user_input.upper()}</b></p>"
+#
+#     # Return the processed result as plain HTML
+#     return HTMLResponse(content=result_html)
