@@ -21,7 +21,7 @@ db_config: dict[str, str] = {
     'host': 'localhost',
     'user': 'mutall',
     'password': 'mutall@2023',
-    'database': 'mutallco_rental',
+    'database': 'mutallco_rental_2025_11_17',
 }
 
 
@@ -722,8 +722,26 @@ class Electricity(Service):
                     ebill.ebill
                 """, (self.client.prev_cutoff, self.client.curr_cutoff)
             )
+            #
+            # Get column names
+            columns = []
+            #
+            # After executing a SQL query, the cursor object  has a .description
+            # attribute that contains metadata about the columns in the result
+            # set. It's a tuple of 7-element tuples, one for each column:
+            if kasa.description:
+                #
+                # Loop through the tuple
+                for desc in kasa.description:
+                    #
+                    # Append the first element (i.e., column name) in each tuple
+                    columns.append(desc[0])
+
+            # Fetch results
             all_ebills: list[dict] = kasa.fetchall()
-            all_ebills_df: DataFrame = DataFrame(all_ebills)
+            #
+            # Create DataFrame with columns even if empty
+            all_ebills_df: DataFrame = DataFrame(all_ebills, columns=columns)
             #
             # Truncate current amount values to 2 decimal places
             all_ebills_df['current_amount'] = (all_ebills_df['current_amount']

@@ -61,7 +61,7 @@ async def electricity(request: Request):
     year = today.year
     #
     # Instantiate the Client class using the dates above.
-    client = Client(10, 2025)
+    client = Client(month, year)
     #
     # Instantiate the Electricty class using the client.
     e_class = Electricity(client)
