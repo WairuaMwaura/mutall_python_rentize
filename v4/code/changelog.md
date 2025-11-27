@@ -6,4 +6,5 @@ All notable changes to this project will be documented in this file.
 
 ### Changed 
 - Report period logic
-- Created interactive user interface.
+- Created interactive user interface for Electricity Class.
+- Added Gunicorn to serve the app via remote server.

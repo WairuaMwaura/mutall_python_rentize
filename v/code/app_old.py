@@ -1,6 +1,6 @@
 #
 # Import classes
-from rentize import Client, Service, Water, Charges, Rent, Electricity
+from rentize import Client, Item, Service, Water, Charges, Rent, Electricity, Payment
 #
 # Date Variables
 month = 10
@@ -9,11 +9,14 @@ year = 2025
 # Instantiate the Client class with the specified date variables.
 client = Client(month, year)
 #
+# Instantiate the Item class with the client object
+item = Item(client)
+#
 # # Instantiate Service class
-service = Service(client)
+# service = Service(client)
 # #
 # # List active clients
-# clients_df = service.client.get_active_clients()
+clients_df = client.get_active_clients()
 # #
 # # Instantiate Charges class
 # charges = Charges(client)
@@ -34,13 +37,18 @@ service = Service(client)
 # rent = Rent(client)
 # rent_p = rent.get_rental_charges()
 #
-# Use the current client to create an instance of the Electricity class.
-e_class = Electricity(client)
+# # Use the current client to create an instance of the Electricity class.
+# e_class = Electricity(client)
+# #
+# # Use the electric instance to get the electricity readings of the specified month.
+# all_ebills = e_class.get_all_bills()
+# client_ebills = e_class.get_client_ebills()
+# room_bills = e_class.get_room_ebills()
+# unattended_ebills = e_class.get_unattended_ebills()
+# service_ebills = e_class.get_service_ebills()
 #
-# Use the electric instance to get the electricity readings of the specified month.
-all_ebills = e_class.get_all_bills()
-client_ebills = e_class.get_client_ebills()
-room_bills = e_class.get_room_ebills()
-unattended_ebills = e_class.get_unattended_ebills()
-service_ebills = e_class.get_service_ebills()
+# Instantiate the payment class with the item object
+payment = Payment(client)
+curr_payments = payment.get_payments()
+
 print('finished')

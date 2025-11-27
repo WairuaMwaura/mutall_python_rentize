@@ -54,7 +54,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // Step 7: Use the fetch() API to send a POST request to the FastAPI backend at the '/all_ebills' endpoint.
         // The fetch() method returns a Promise, so we use 'await' to pause execution until the server responds.
         // Include the JSON-encoded input in the request body, and set the appropriate 'Content-Type' header to 'application/json'.
-        const response: Response = await fetch("/all_ebills", 
+        const response: Response = await fetch("/joshua/all_ebills",
             {
                 //
                 // Define the HTTP method.
@@ -114,7 +114,7 @@ document.addEventListener("DOMContentLoaded", () => {
         );
         // 
         // Send a  fetch request to the server and save the response.
-        const response: Response = await fetch("/client_ebills", 
+        const response: Response = await fetch("/joshua/client_ebills", 
             {
                 //
                 // Define the HTTP method.
@@ -171,7 +171,7 @@ document.addEventListener("DOMContentLoaded", () => {
         );
         // 
         // Send a  fetch request to the server and save the response.
-        const response: Response = await fetch("/unattended_ebills", 
+        const response: Response = await fetch("/joshua/unattended_ebills", 
             {
                 //
                 // Define the HTTP method.
@@ -225,7 +225,7 @@ document.addEventListener("DOMContentLoaded", () => {
         );
         // 
         // Send a  fetch request to the server and save the response.
-        const response: Response = await fetch("/service_ebills", 
+        const response: Response = await fetch("/joshua/service_ebills", 
             {
                 //
                 // Define the HTTP method.

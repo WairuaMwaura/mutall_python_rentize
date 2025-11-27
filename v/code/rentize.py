@@ -21,7 +21,7 @@ db_config: dict[str, str] = {
     'host': 'localhost',
     'user': 'mutall',
     'password': 'mutall@2023',
-    'database': 'mutallco_rental_2025_11_17',
+    'database': 'mutallco_rental',
 }
 
 
@@ -164,13 +164,23 @@ class Client:
 
 
 #
-# Define a Service class that encapsulates all utilities
-class Service:
+# Define an Item classs that encapsulates?????????????????
+class Item:
     def __init__(self, client: Client):
+        self.name: str | None = None
+        self.amount: int | None = None
+        self.client = client
+
+
+#
+# Define a Service class that encapsulates all utilities
+class Service(Item):
+    def __init__(self, client):
         self.quantity: int | None = None
         self.rate: int | None = None
         self.amount: int | None = None
-        self.client = client
+        super().__init__(client)
+
 
     def calculate_amount(self):
         if self.quantity is not None and self.rate is not None:
@@ -965,7 +975,38 @@ class Electricity(Service):
 
 #
 # Define a class that encapsulates bank reconciliation
-class Payment(Service):
-    def __init__(self, client: Client):
+class Payment(Item):
+    def __init__(self, client):
         super().__init__(client)
-        pass
+
+    def get_payments(self) -> DataFrame:
+        with connection_and_cursor_manager() as (kon, kasa):
+            #
+            # Get all payments for current month
+            kasa.execute(
+                """
+                select 
+                    client.name,
+                    payment.date,
+                    payment.ref,
+                    payment.description,
+                    payment.amount
+                from 
+                    client
+                    inner join payment on payment.client = client.client
+                where
+                    year(payment.date) = %s and
+                    month(payment.date) = %s
+                """, (self.client.year, self.client.month)
+            )
+            #
+            # Fetch and store the query result from database
+            current_payments: list[dict] = kasa.fetchall()
+            #
+            # Create a DataFrame from the result
+            current_payments_df: DataFrame = DataFrame(current_payments)
+            #
+            # Truncate decimal places
+            current_payments_df['amount'] = current_payments_df['amount'].astype(int)
+
+            return current_payments_df
