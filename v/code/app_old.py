@@ -7,22 +7,24 @@ month = 10
 year = 2025
 #
 # Instantiate the Client class with the specified date variables.
+# Add factor/ quarterly rate for clients on active client class ????????????????????????????????????????
 client = Client(month, year)
 #
 # Instantiate the Item class with the client object
 item = Item(client)
 #
 # # Instantiate Service class
-# service = Service(client)
+service = Service(client)
 # #
 # # List active clients
 clients_df = client.get_active_clients()
 # #
 # # Instantiate Charges class
-# charges = Charges(client)
+charges = Charges(client)
 # #
 # # Show subscribed charges for each client
-# subs_df = charges.get_subscribed_charges()
+# #     why is room 29 repeating - because in the DB it is assigned to 2 clients (Orusa and Homekena) whereby the agreements are not terminated??????????????????????????????????????????????????????????????????????
+subs_df = charges.get_subscribed_charges()
 # #
 # # Show automatic charges for each client
 # auto_charges_df = charges.get_auto_charges()
@@ -48,7 +50,7 @@ clients_df = client.get_active_clients()
 # service_ebills = e_class.get_service_ebills()
 #
 # Instantiate the payment class with the item object
-payment = Payment(client)
-curr_payments = payment.get_payments()
+# payment = Payment(client)
+# curr_payments = payment.get_payments()
 
 print('finished')

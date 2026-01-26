@@ -94,11 +94,13 @@ class Client:
             if current_period.empty:
                 raise ValueError("No matching period found for that month in the database")
             #
-            # Get the row number and cutoff date and convert the latter to datetime.datetime object format.
+            # Get the row number of current period (will use it to get the previous period)
             row_number = current_period.iloc[0]["row_number"]
+            #
+            # Get current cutoff date and convert it to datetime.datetime object format.
             self.curr_cutoff = pd.to_datetime(current_period.iloc[0]["cutoff"]).to_pydatetime()
             #
-            # Get the cutoff date of the period just before the current one.
+            # Get the cutoff date of the previous period (based on the current period above).
             #
             # Get the previous period by subtracting 1 from the row_num of the
             #   current period.
@@ -416,8 +418,73 @@ class Charges(Service):
             subs: list[dict] = kasa.fetchall()
             subs_df: DataFrame = DataFrame(subs)
             #
+            # Add water connection feature/column to client class so that
+            #   clients that have a water connection shouldn't be charged water
+            #   service
+            # 1. Select rooms rented by active clients.
+            kasa.execute(
+                """
+                select
+                    agreement.client,
+                    room.room
+                from
+                    agreement
+                    inner join room on agreement.room = room.room
+                where
+                    agreement.terminated is null and
+                    agreement.valid = 1;
+                """
+            )
+            rooms: list[dict] = kasa.fetchall()
+            rooms_df: DataFrame = DataFrame(rooms)
+            client_rooms_df = self.client.get_active_clients().merge(
+                rooms_df, on="client", how="inner"
+            )
+            #
+            # Remove duplicate columns.
+            #
+            # drop all _y columns
+            client_rooms_df = client_rooms_df.loc[:, ~client_rooms_df
+                .columns
+                .str
+                .endswith('_y')]
+            #
+            # clean column names
+            client_rooms_df.columns = client_rooms_df.columns.str.replace(
+                '_x', '', regex=False
+            )
+            #
+            # 2. Get water connection status for those rooms.
+            kasa.execute(
+                """
+                select
+                    wconnection.room,
+                    wconnection.wconnection
+                from
+                    wconnection
+                where
+                    wconnection.disconnected is null and
+                    wconnection.end_date = "9999-12.31"
+                """
+            )
+            connected_rooms: list[dict] = kasa.fetchall()
+            connected_rooms_df: DataFrame = DataFrame(connected_rooms)
+            #
+            # 3. Get the connection count for each client connected to water.
+            #
+            # 3.1. Merge the active client rooms with the water connection
+            #   status.
+            client_connections_df = client_rooms_df.merge(
+                connected_rooms_df, on="room", how="left"
+            )
+            #
+            # 3.2. Get the connection count for each client
+            client_connections_df = client_connections_df.groupby("client")["wconnection"] \
+                .count() \
+                .reset_index(name="connection_count")
+            #
             # - Join the clients to Subscriptions DataFrame
-            clients_subs_df: DataFrame = self.client.get_active_clients().merge(
+            clients_subs_df: DataFrame = client_connections_df.merge(
                 subs_df, on="client", how="left"
             )
             #
@@ -442,7 +509,7 @@ class Charges(Service):
                     'amount': 'negotiated_price'
                 }
             )
-            #
+            # #
             # Get the actual price based on negotiated price or service price (i.e.,
             #   If the negotiated_price is missing (NaN), use the service_price
             #   instead and save that as a new column called actual_price)
@@ -451,34 +518,35 @@ class Charges(Service):
             # If client is connected to water then the water service charge is zero
             clients_services_df.loc[
                 (clients_services_df["service_name"] == "water")
-                & (clients_services_df["connection_count"] > 0), "service_price"
+                & (clients_services_df["connection_count"] > 0), "actual_price"
             ] = 0
-            #
-            # Add calculated amount column for each client's subscribed service
-            clients_services_df['calculated_amount'] = (
-                    clients_services_df['actual_price']
-                    * clients_services_df['factor']
-            )
-            #
-            # Reorder columns in DataFrame
-            clients_services_df = clients_services_df[
-                ['year', 'month', 'client', 'client_name', 'quarterly', 'factor',
-                 'connection_count', 'service_name', 'service_price',
-                 'negotiated_price', 'calculated_amount']
-            ]
-            #
-            # Replace NaN values with default value of zero and remove decimals from
-            #   service price, negotiated price, and calculated amount columns
-            clients_services_df['service_price'] = clients_services_df[
-                'service_price'
-            ].fillna(0).astype(int)
-            clients_services_df['calculated_amount'] = clients_services_df[
-                'calculated_amount'
-            ].fillna(0).astype(int)
-            clients_services_df['negotiated_price'] = clients_services_df[
-                'negotiated_price'
-            ].fillna(0).astype(int)
             return clients_services_df
+            # #
+            # # Add calculated amount column for each client's subscribed service
+            # clients_services_df['calculated_amount'] = (
+            #         clients_services_df['actual_price']
+            #         * clients_services_df['factor']
+            # )
+            # #
+            # # Reorder columns in DataFrame
+            # clients_services_df = clients_services_df[
+            #     ['year', 'month', 'client', 'client_name', 'quarterly', 'factor',
+            #      'connection_count', 'service_name', 'service_price',
+            #      'negotiated_price', 'calculated_amount']
+            # ]
+            # #
+            # # Replace NaN values with default value of zero and remove decimals from
+            # #   service price, negotiated price, and calculated amount columns
+            # clients_services_df['service_price'] = clients_services_df[
+            #     'service_price'
+            # ].fillna(0).astype(int)
+            # clients_services_df['calculated_amount'] = clients_services_df[
+            #     'calculated_amount'
+            # ].fillna(0).astype(int)
+            # clients_services_df['negotiated_price'] = clients_services_df[
+            #     'negotiated_price'
+            # ].fillna(0).astype(int)
+            # return clients_services_df
 
     #
     # Get all services that are automatically charged
@@ -563,8 +631,9 @@ class Rent(Service):
         super().__init__(client)
 
     #
-    # Get the report period (i.e., the first day of the month| day after the
-    #   cutoff period and the last day of the month or the cutoff period).
+    # Get the report period (i.e., the first day of the month | day after the
+    #   previous cutoff period and the last day of the month or the current
+    #   cutoff period).
     def get_rental_charges(self):
         with connection_and_cursor_manager() as (kon, kasa):
             #
