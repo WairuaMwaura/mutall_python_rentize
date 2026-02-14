@@ -150,6 +150,7 @@ class Client:
                 # Group by client when performing the aggregate functions (i.e., min
                 #   and max).
                 .groupby("client", as_index=False).agg(
+                    name=("name", "first"),
                     start_date=("start_date", "min"),
                     end_date=("end_date", "max")
                 )
@@ -162,6 +163,10 @@ class Client:
                 (client_tenure_df["start_date"] <= self.curr_cutoff)
                 & (client_tenure_df["end_date"] > self.prev_cutoff)
                 ]
+            #
+            # Add month and year columns
+            active_client_df["month"] = self.month
+            active_client_df["year"] = self.year
             return active_client_df
 
 
@@ -229,10 +234,20 @@ class Water(Service):
                 self.client.get_active_clients(), on="client", how="inner"
             )
             #
+            # Rename 'start_date' and 'end_date' columns for the water
+            #   connection to avoid conflicts with 'start_date' and 'end_date'
+            #   columns for agreement.
+            clients_water_connections_df: DataFrame = clients_water_connections_df.rename(
+                columns={
+                    'start_date_x': 'connection_start_date',
+                    'end_date_x': 'connection_end_date'
+                }
+            )
+            #
             # Filter dataframe to have only active water connections
             filter_date: date = date(9999, 12, 31)
             active_water_connections_df: DataFrame = clients_water_connections_df[
-                clients_water_connections_df['end_date'] == filter_date]
+                clients_water_connections_df['connection_end_date'] == filter_date]
             #
             # 2. Get all water meters
             # Execute query DB for all water meters
@@ -296,12 +311,13 @@ class Water(Service):
             #
             # Filter columns to show
             latest_readings_df: DataFrame = latest_readings_df[
-                ['client_name', 'wconnection', 'serial_no', 'rate', 'date', 'value']
+                ['name_x', 'wconnection', 'serial_no', 'rate', 'date', 'value']
             ]
             #
             # Rename column names
             latest_readings_df: DataFrame = latest_readings_df.rename(
                 columns={
+                    'name_x': 'name',
                     'date': 'curr_date',
                     'value': 'curr_value'
                 }
@@ -313,7 +329,7 @@ class Water(Service):
             latest_readings_df['curr_value'] = (latest_readings_df['curr_value']
                                                 .round(2))
             return latest_readings_df
-
+            #
     #
     # Define method to get previous (last invoiced) water readings for each
     #   water connection
@@ -383,7 +399,7 @@ class Water(Service):
             # Filter the columns to be displayed
             active_invoiced_water_readings_df: DataFrame = (
                 active_invoiced_water_readings_df[
-                    ['client_name', 'wconnection', 'curr_date', 'curr_value']
+                    ['name', 'wconnection', 'curr_date', 'curr_value']
                 ]
             )
             #
@@ -591,37 +607,48 @@ class Charges(Service):
             auto_clients_charges_df['actual_price'] = auto_clients_charges_df[
                 'negotiated_price'].fillna(auto_clients_charges_df['service_price'])
             #
-            # If client is connected to water then the water service charge is zero
-            auto_clients_charges_df.loc[
-                (auto_clients_charges_df["service_name"] == "water")
-                & (auto_clients_charges_df["connection_count"] > 0), "service_price"
-            ] = 0
-            #
-            # Add calculated amount column for each client's subscribed service
-            auto_clients_charges_df['calculated_amount'] = (
-                    auto_clients_charges_df['actual_price']
-                    * auto_clients_charges_df['factor']
+            # Rename "name" for client and "name" for service columns to avoid
+            #   conflicts.
+            auto_clients_charges_df = auto_clients_charges_df.rename(
+                columns={
+                    'name_x': 'name',
+                    'name_y': 'service_name'
+                }
             )
-            #
-            # Reorder columns in DataFrame
-            auto_clients_charges_df = auto_clients_charges_df[
-                ['year', 'month', 'client', 'client_name', 'quarterly', 'factor',
-                 'connection_count', 'service_name', 'service_price',
-                 'negotiated_price', 'calculated_amount']
-            ]
-            #
-            # Replace NaN values with default value of zero and remove decimals from
-            #   service price, negotiated price, and calculated amount columns
-            auto_clients_charges_df['service_price'] = auto_clients_charges_df[
-                'service_price'
-            ].fillna(0).astype(int)
-            auto_clients_charges_df['calculated_amount'] = auto_clients_charges_df[
-                'calculated_amount'
-            ].fillna(0).astype(int)
-            auto_clients_charges_df['negotiated_price'] = auto_clients_charges_df[
-                'negotiated_price'
-            ].fillna(0).astype(int)
             return auto_clients_charges_df
+            # #
+            # # If client is connected to water then the water service charge is
+            # #   zero
+            # auto_clients_charges_df.loc[
+            #     (auto_clients_charges_df["service_name"] == "water")
+            #     & (auto_clients_charges_df["connection_count"] > 0), "service_price"
+            # ] = 0
+            # #
+            # # Add calculated amount column for each client's subscribed service
+            # auto_clients_charges_df['calculated_amount'] = (
+            #         auto_clients_charges_df['actual_price']
+            #         * auto_clients_charges_df['factor']
+            # )
+            # #
+            # # Reorder columns in DataFrame
+            # auto_clients_charges_df = auto_clients_charges_df[
+            #     ['year', 'month', 'client', 'name', 'quarterly', 'factor',
+            #      'connection_count', 'service_name', 'service_price',
+            #      'negotiated_price', 'calculated_amount']
+            # ]
+            # #
+            # # Replace NaN values with default value of zero and remove decimals from
+            # #   service price, negotiated price, and calculated amount columns
+            # auto_clients_charges_df['service_price'] = auto_clients_charges_df[
+            #     'service_price'
+            # ].fillna(0).astype(int)
+            # auto_clients_charges_df['calculated_amount'] = auto_clients_charges_df[
+            #     'calculated_amount'
+            # ].fillna(0).astype(int)
+            # auto_clients_charges_df['negotiated_price'] = auto_clients_charges_df[
+            #     'negotiated_price'
+            # ].fillna(0).astype(int)
+            # return auto_clients_charges_df
 
 
 #
