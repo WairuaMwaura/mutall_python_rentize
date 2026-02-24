@@ -19,22 +19,22 @@ service = Service(client)
 # # List active clients
 clients_df = client.get_active_clients()
 # #
-# # Instantiate Charges class
-charges = Charges(client)
-#
-# Show subscribed charges for each client
-#     why is room 29 repeating - because in the DB it is assigned to 2 clients (Orusa and Homekena) whereby the agreements are not terminated??????????????????????????????????????????????????????????????????????
-# subs_df = charges.get_subscribed_charges()
-# #
-# # Show automatic charges for each client
-auto_charges_df = charges.get_auto_charges()
-# #
 # # # Get current water readings based on the variable date at the top
 # curr_water_rds = Water(client).get_current_readings()
 # # #
 # # # Get previous water readings based on the variable date at the top
 # prev_water_rds = Water(client).get_previous_readings()
-# #
+#
+#
+# Instantiate Charges class
+# charges = Charges(client)
+#
+# Show subscribed charges for each client
+#     why is room 29 repeating - because in the DB it is assigned to 2 clients (Orusa and Homekena) whereby the agreements are not terminated??????????????????????????????????????????????????????????????????????
+# subs_df = charges.get_subscribed_charges()
+#
+# Show automatic charges for each client
+# auto_charges_df = charges.get_auto_charges()
 # # Instantiate Rent class
 # rent = Rent(client)
 # rent_p = rent.get_rental_charges()
@@ -50,7 +50,7 @@ auto_charges_df = charges.get_auto_charges()
 # service_ebills = e_class.get_service_ebills()
 #
 # Instantiate the payment class with the item object
-# payment = Payment(client)
-# curr_payments = payment.get_payments()
+payment = Payment(client)
+curr_payments = payment.get_payments()
 
 print('finished')

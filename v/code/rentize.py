@@ -3,9 +3,7 @@
 #
 # Import libraries to use
 from mysql.connector import connect
-from mysql.connector.cursor import MySQLCursorDict
 import pandas as pd
-from mysql.connector.pooling import PooledMySQLConnection
 from pandas import DataFrame, merge, to_datetime, Timedelta
 from datetime import date, datetime
 from contextlib import contextmanager
@@ -172,6 +170,7 @@ class Client:
 
 #
 # Define an Item classs that encapsulates?????????????????
+# How to show relationship with Invoice class?????????????????????????????????????????????
 class Item:
     def __init__(self, client: Client):
         self.name: str | None = None
@@ -311,7 +310,7 @@ class Water(Service):
             #
             # Filter columns to show
             latest_readings_df: DataFrame = latest_readings_df[
-                ['name_x', 'wconnection', 'serial_no', 'rate', 'date', 'value']
+                ['client', 'name_x', 'wconnection', 'serial_no', 'rate', 'date', 'value']
             ]
             #
             # Rename column names
@@ -399,7 +398,7 @@ class Water(Service):
             # Filter the columns to be displayed
             active_invoiced_water_readings_df: DataFrame = (
                 active_invoiced_water_readings_df[
-                    ['name', 'wconnection', 'curr_date', 'curr_value']
+                    ['client', 'name', 'wconnection', 'curr_date', 'curr_value']
                 ]
             )
             #
@@ -615,40 +614,74 @@ class Charges(Service):
                     'name_y': 'service_name'
                 }
             )
+            #
+            # Get clients who appear in previous water readings and count their
+            #   connections — clients NOT in previous readings get a count of 0.
+            water = Water(self.client)
+            prev_readings_df = water.get_previous_readings()
+            #
+            # Count connections per client from previous readings
+            connection_counts: DataFrame = (
+                prev_readings_df
+                .groupby('client')['wconnection']
+                .count()
+                .reset_index()
+                .rename(columns={'wconnection': 'connection_count'})
+            )
+            #
+            # Left merge so ALL clients are kept; unmatched ones get NaN → fill with 0
+            auto_clients_charges_df = auto_clients_charges_df.merge(
+                connection_counts, on='client', how='left'
+            )
+            auto_clients_charges_df['connection_count'] = (
+                auto_clients_charges_df['connection_count'].fillna(0).astype(
+                    int)
+            )
+            #
+            # If client is connected to water then the water service charge is
+            #   zero
+            auto_clients_charges_df.loc[
+                (auto_clients_charges_df["service_name"] == "water")
+                & (auto_clients_charges_df["connection_count"] > 0), "service_price"
+            ] = 0
+            #
+            # Get factor for each client from Rent class
+            rent = Rent(self.client)
+            factors_df: DataFrame = (
+                rent.get_rental_charges()[['client', 'factor']]
+                .drop_duplicates(subset=['client'])
+            )
+            #
+            # Merge factor into auto_clients_charges_df
+            auto_clients_charges_df = auto_clients_charges_df.merge(
+                factors_df, on='client', how='left'
+            )
+            #
+            # Add calculated amount column for each client's subscribed service
+            auto_clients_charges_df['calculated_amount'] = (
+                    auto_clients_charges_df['actual_price']
+                    * auto_clients_charges_df['factor']
+            )
+            #
+            # Reorder columns in DataFrame
+            auto_clients_charges_df = auto_clients_charges_df[
+                ['year', 'month', 'client', 'name', 'factor',
+                 'connection_count', 'service_name', 'service_price',
+                 'negotiated_price', 'calculated_amount']
+            ]
+            #
+            # Replace NaN values with default value of zero and remove decimals from
+            #   service price, negotiated price, and calculated amount columns
+            auto_clients_charges_df['service_price'] = auto_clients_charges_df[
+                'service_price'
+            ].fillna(0).astype(int)
+            auto_clients_charges_df['calculated_amount'] = auto_clients_charges_df[
+                'calculated_amount'
+            ].fillna(0).astype(int)
+            auto_clients_charges_df['negotiated_price'] = auto_clients_charges_df[
+                'negotiated_price'
+            ].fillna(0).astype(int)
             return auto_clients_charges_df
-            # #
-            # # If client is connected to water then the water service charge is
-            # #   zero
-            # auto_clients_charges_df.loc[
-            #     (auto_clients_charges_df["service_name"] == "water")
-            #     & (auto_clients_charges_df["connection_count"] > 0), "service_price"
-            # ] = 0
-            # #
-            # # Add calculated amount column for each client's subscribed service
-            # auto_clients_charges_df['calculated_amount'] = (
-            #         auto_clients_charges_df['actual_price']
-            #         * auto_clients_charges_df['factor']
-            # )
-            # #
-            # # Reorder columns in DataFrame
-            # auto_clients_charges_df = auto_clients_charges_df[
-            #     ['year', 'month', 'client', 'name', 'quarterly', 'factor',
-            #      'connection_count', 'service_name', 'service_price',
-            #      'negotiated_price', 'calculated_amount']
-            # ]
-            # #
-            # # Replace NaN values with default value of zero and remove decimals from
-            # #   service price, negotiated price, and calculated amount columns
-            # auto_clients_charges_df['service_price'] = auto_clients_charges_df[
-            #     'service_price'
-            # ].fillna(0).astype(int)
-            # auto_clients_charges_df['calculated_amount'] = auto_clients_charges_df[
-            #     'calculated_amount'
-            # ].fillna(0).astype(int)
-            # auto_clients_charges_df['negotiated_price'] = auto_clients_charges_df[
-            #     'negotiated_price'
-            # ].fillna(0).astype(int)
-            # return auto_clients_charges_df
 
 
 #
@@ -717,9 +750,11 @@ class Rent(Service):
                     agreement.start_date,
                     agreement.duration,
                     agreement.review,
-                    agreement.amount
+                    agreement.amount,
+                    client.quarterly
                 from
                     agreement
+                    inner join client on agreement.client = client.client
                 where
                     agreement.terminated is null
                 """
@@ -729,6 +764,38 @@ class Rent(Service):
             valid_agreements_df: DataFrame = agreements_df.merge(
                 self.client.get_active_clients(), on="client", how="right"
             )
+            #
+            # Rename "name" column for client
+            valid_agreements_df = valid_agreements_df.rename(columns={'name': 'client_name'})
+            #
+            # Convert start_date to datetime FIRST (must be before month_difference calculation)
+            valid_agreements_df['start_date_x'] = pd.to_datetime(
+                valid_agreements_df['start_date_x'])
+            #
+            # Calculate month difference between agreement start date and current period
+            valid_agreements_df['month_difference'] = (
+                    ((self.client.year - valid_agreements_df[
+                        'start_date_x'].dt.year) * 12)
+                    + (self.client.month - valid_agreements_df[
+                'start_date_x'].dt.month)
+            )
+            #
+            # Monthly clients have a factor of 1
+            valid_agreements_df['factor'] = 1
+            #
+            # Quarterly clients that are due have a factor of 3
+            valid_agreements_df.loc[
+                (valid_agreements_df['quarterly'] == 1)
+                & (valid_agreements_df['month_difference'] % 3 == 0),
+                'factor'
+            ] = 3
+            #
+            # Quarterly clients that are not due have a factor of 0
+            valid_agreements_df.loc[
+                (valid_agreements_df['quarterly'] == 1)
+                & (valid_agreements_df['month_difference'] % 3 != 0),
+                'factor'
+            ] = 0
             #
             # Add the start and end period columns
             valid_agreements_df: DataFrame = valid_agreements_df.merge(
@@ -743,7 +810,7 @@ class Rent(Service):
             #   the start period date for the report
             #
             # Convert to datetime format
-            valid_agreements_df['start_date'] = pd.to_datetime(valid_agreements_df['start_date'])
+            valid_agreements_df['start_date'] = pd.to_datetime(valid_agreements_df['start_date_x'])
             valid_agreements_df['start_period'] = pd.to_datetime(valid_agreements_df['start_period'])
             valid_agreements_df["day_difference"] = (valid_agreements_df["start_period"]
                                                     - valid_agreements_df["start_date"]
@@ -1106,3 +1173,40 @@ class Payment(Item):
             current_payments_df['amount'] = current_payments_df['amount'].astype(int)
 
             return current_payments_df
+
+
+#
+# Define a class that encapsulates opening balance
+class Opening_Balance(Item):
+    def __init__(self, client):
+        super().__init__(client)
+
+
+#
+# Define a class that encapsulates invoice adjustments
+class Adjustment(Item):
+    def __init__(self, client):
+        super().__init__(client)
+
+
+#
+# Define a class that encapsulates credit for each client
+class Credit(Adjustment):
+    def __init__(self, client):
+        super().__init__(client)
+
+
+#
+# Define a class that encapsulates debit for each client
+class Credit(Adjustment):
+    def __init__(self, client):
+        super().__init__(client)
+
+
+#
+# Define a class that encapsulates invoice for each client
+class Invoice():
+    def __init__(self, client: Client):
+        self.opening_balance: int | None = None
+        self.electricity: int | None = None
+        self.client = client
