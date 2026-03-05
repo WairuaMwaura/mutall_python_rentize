@@ -169,6 +169,15 @@ class Client:
 
 
 #
+# Define a class that encapsulates invoice for each client
+class Invoice:
+    def __init__(self, client: Client):
+        self.opening_balance: int | None = None
+        self.electricity: int | None = None
+        self.client = client
+
+
+#
 # Define an Item classs that encapsulates?????????????????
 # How to show relationship with Invoice class?????????????????????????????????????????????
 class Item:
@@ -186,7 +195,6 @@ class Service(Item):
         self.rate: int | None = None
         self.amount: int | None = None
         super().__init__(client)
-
 
     def calculate_amount(self):
         if self.quantity is not None and self.rate is not None:
@@ -329,6 +337,7 @@ class Water(Service):
                                                 .round(2))
             return latest_readings_df
             #
+
     #
     # Define method to get previous (last invoiced) water readings for each
     #   water connection
@@ -345,9 +354,6 @@ class Water(Service):
             #
             # Create a Dataframe from the fetched result
             periods_df: DataFrame = DataFrame(all_periods)
-            #
-            # - Get today's date
-            leo: datetime = datetime.today()
             #
             # Handle month and year for the last period and have condition for
             #   current date being January
@@ -459,10 +465,8 @@ class Charges(Service):
             # Remove duplicate columns.
             #
             # drop all _y columns
-            client_rooms_df = client_rooms_df.loc[:, ~client_rooms_df
-                .columns
-                .str
-                .endswith('_y')]
+            client_rooms_df = client_rooms_df.loc[
+                              :, ~client_rooms_df.columns.str.endswith('_y')]
             #
             # clean column names
             client_rooms_df.columns = client_rooms_df.columns.str.replace(
@@ -489,18 +493,22 @@ class Charges(Service):
             #
             # 3.1. Merge the active client rooms with the water connection
             #   status.
-            client_connections_df = client_rooms_df.merge(
-                connected_rooms_df, on="room", how="left"
+            client_connections_df = (
+                client_rooms_df.merge(connected_rooms_df, on="room", how="left")
             )
             #
             # 3.2. Get the connection count for each client
-            client_connections_df = client_connections_df.groupby("client")["wconnection"] \
-                .count() \
+            client_connections_df = (
+                client_connections_df
+                .groupby("client")["wconnection"]
+                .count()
                 .reset_index(name="connection_count")
+            )
             #
             # - Join the clients to Subscriptions DataFrame
-            clients_subs_df: DataFrame = client_connections_df.merge(
-                subs_df, on="client", how="left"
+            clients_subs_df: DataFrame = (
+                client_connections_df
+                .merge(subs_df, on="client", how="left")
             )
             #
             # Get the subscribed utility name and price for each client
@@ -776,8 +784,8 @@ class Rent(Service):
             valid_agreements_df['month_difference'] = (
                     ((self.client.year - valid_agreements_df[
                         'start_date_x'].dt.year) * 12)
-                    + (self.client.month - valid_agreements_df[
-                'start_date_x'].dt.month)
+                    + (self.client.month
+                       - valid_agreements_df['start_date_x'].dt.month)
             )
             #
             # Monthly clients have a factor of 1
@@ -965,8 +973,8 @@ class Electricity(Service):
             # Remove duplicate columns.
             #
             # drop all _y columns
-            active_clients_ebills_df = active_clients_ebills_df.loc[:,
-                     ~active_clients_ebills_df.columns.str.endswith('_y')]
+            active_clients_ebills_df = active_clients_ebills_df.loc[
+                                       :, ~active_clients_ebills_df.columns.str.endswith('_y')]
             #
             # clean column names
             active_clients_ebills_df.columns = active_clients_ebills_df.columns.str.replace('_x', '', regex=False)
@@ -1158,9 +1166,9 @@ class Payment(Item):
                     client
                     inner join payment on payment.client = client.client
                 where
-                    year(payment.date) = %s and
-                    month(payment.date) = %s
-                """, (self.client.year, self.client.month)
+                    payment.date > %s and 
+                    payment.date <= %s
+                """, (self.client.prev_cutoff, self.client.curr_cutoff)
             )
             #
             # Fetch and store the query result from database
@@ -1190,23 +1198,76 @@ class Adjustment(Item):
 
 
 #
-# Define a class that encapsulates credit for each client
-class Credit(Adjustment):
-    def __init__(self, client):
-        super().__init__(client)
-
-
-#
 # Define a class that encapsulates debit for each client
 class Credit(Adjustment):
     def __init__(self, client):
         super().__init__(client)
 
+    def get_credit(self) -> DataFrame:
+        with connection_and_cursor_manager() as (kon, kasa):
+            #
+            # Get all payments for current month
+            kasa.execute(
+                """
+                select 
+                    client.name,
+                    credit.date,
+                    credit.amount,
+                    credit.reason
+                from 
+                    client
+                    inner join credit on credit.client = client.client
+                where
+                    credit.date > %s and
+                    credit.date <= %s
+                """, (self.client.prev_cutoff, self.client.curr_cutoff)
+            )
+            #
+            # Fetch and store the query result from database
+            credit: list[dict] = kasa.fetchall()
+            #
+            # Create a DataFrame from the result
+            credit_df: DataFrame = DataFrame(credit)
+            #
+            # Truncate decimal places
+            credit_df['amount'] = credit_df['amount'].astype(int)
+
+            return credit_df
+
 
 #
-# Define a class that encapsulates invoice for each client
-class Invoice():
-    def __init__(self, client: Client):
-        self.opening_balance: int | None = None
-        self.electricity: int | None = None
-        self.client = client
+# Define a class that encapsulates debit for each client
+class Debit(Adjustment):
+    def __init__(self, client):
+        super().__init__(client)
+
+    def get_debit(self) -> DataFrame:
+        with connection_and_cursor_manager() as (kon, kasa):
+            #
+            # Get all payments for current month
+            kasa.execute(
+                """
+                select 
+                    client.name,
+                    debit.date,
+                    debit.amount,
+                    debit.reason
+                from 
+                    client
+                    inner join debit on debit.client = client.client
+                where
+                    debit.date > %s and
+                    debit.date <= %s
+                """, (self.client.prev_cutoff, self.client.curr_cutoff)
+            )
+            #
+            # Fetch and store the query result from database
+            debit: list[dict] = kasa.fetchall()
+            #
+            # Create a DataFrame from the result
+            debit_df: DataFrame = DataFrame(debit)
+            #
+            # Truncate decimal places
+            debit_df['amount'] = debit_df['amount'].astype(int)
+
+            return debit_df

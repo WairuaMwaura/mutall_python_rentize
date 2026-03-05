@@ -1,10 +1,10 @@
 #
 # Import classes
-from rentize import Client, Item, Service, Water, Charges, Rent, Electricity, Payment
+from rentize import Client, Item, Service, Water, Charges, Rent, Electricity, Payment, Adjustment, Credit, Debit
 #
 # Date Variables
-month = 10
-year = 2025
+month = 6
+year = 2019
 #
 # Instantiate the Client class with the specified date variables.
 # Add factor/ quarterly rate for clients on active client class ????????????????????????????????????????
@@ -30,7 +30,6 @@ clients_df = client.get_active_clients()
 # charges = Charges(client)
 #
 # Show subscribed charges for each client
-#     why is room 29 repeating - because in the DB it is assigned to 2 clients (Orusa and Homekena) whereby the agreements are not terminated??????????????????????????????????????????????????????????????????????
 # subs_df = charges.get_subscribed_charges()
 #
 # Show automatic charges for each client
@@ -52,5 +51,15 @@ clients_df = client.get_active_clients()
 # Instantiate the payment class with the item object
 payment = Payment(client)
 curr_payments = payment.get_payments()
-
+#
+# Instantiate Adjustment class
+# adjustment = Adjustment(client)
+#
+# Instamtiate Credit class
+credit = Credit(client)
+credit_payments = credit.get_credit()
+#
+# Instantiate Debit class
+debit = Debit(client)
+debit_payments = debit.get_debit()
 print('finished')
