@@ -8,6 +8,9 @@ from pandas import DataFrame, merge, to_datetime, Timedelta
 from datetime import date, datetime
 from contextlib import contextmanager
 #
+# Import abc to force subclasses to implement abstract method rules.
+from abc import ABC, abstractmethod
+#
 # Set display options for pandas - to show all columns and full width
 pd.set_option('display.max_columns', None)
 pd.set_option('display.expand_frame_repr', False)
@@ -149,6 +152,7 @@ class Client:
                 #   and max).
                 .groupby("client", as_index=False).agg(
                     name=("name", "first"),
+                    title=("title", "first"),
                     start_date=("start_date", "min"),
                     end_date=("end_date", "max")
                 )
@@ -178,13 +182,21 @@ class Invoice:
 
 
 #
-# Define an Item classs that encapsulates?????????????????
+# Define an Item classs that encapsulates all individual items.
+# Inherit from ABC library
 # How to show relationship with Invoice class?????????????????????????????????????????????
-class Item:
+class Item(ABC):
     def __init__(self, client: Client):
         self.name: str | None = None
         self.amount: int | None = None
         self.client = client
+
+    #
+    # Create an abstract method that  list individual items e.g., payments, or
+    #   services separately.
+    @abstractmethod
+    def itemize(self) -> DataFrame:
+        pass
 
 
 #
@@ -196,12 +208,18 @@ class Service(Item):
         self.amount: int | None = None
         super().__init__(client)
 
+
     def calculate_amount(self):
         if self.quantity is not None and self.rate is not None:
             self.amount = self.quantity * self.rate
         else:
             print("⚠️ Quantity or rate is None. Cannot calculate amount.")
 
+    #
+    # Implement the abstract method (itemize) to list individual services
+    # separately.
+    def itemize(self) -> DataFrame:
+        pass
 
 #
 # Define a class that encapsulates water calculations for each client
@@ -209,24 +227,26 @@ class Water(Service):
     def __init__(self, client):
         super().__init__(client)
 
+    #
     # Get current water readings for each water connection
     def get_current_readings(self) -> DataFrame:
+        """
+        Get current water readings for each water connection.
+        Returns the latest reading on or before the current cutoff date.
+        """
         with connection_and_cursor_manager() as (kon, kasa):
             #
-            # Get all water readings for each water connection
-            # 1. Get all active water connections and the clients they are connected
-            #   to
-            # Execute query on database to get all water connections
+            # Get all water connections with their associated clients
             kasa.execute(
                 """
-                    select
-                        wconnection.*,
-                        room.uid,
-                        agreement.client 
-                    from 
-                        wconnection
-                        inner join room on wconnection.room = room.room
-                        inner join agreement on agreement.room = room.room
+                select
+                    wconnection.*,
+                    room.uid,
+                    agreement.client 
+                from 
+                    wconnection
+                    inner join room on wconnection.room = room.room
+                    inner join agreement on agreement.room = room.room
                 """
             )
             #
@@ -253,64 +273,56 @@ class Water(Service):
             #
             # Filter dataframe to have only active water connections
             filter_date: date = date(9999, 12, 31)
-            active_water_connections_df: DataFrame = clients_water_connections_df[
-                clients_water_connections_df['connection_end_date'] == filter_date]
+            active_water_connections_df: DataFrame = \
+            clients_water_connections_df[
+                clients_water_connections_df[
+                    'connection_end_date'] == filter_date
+                ]
             #
-            # 2. Get all water meters
-            # Execute query DB for all water meters
+            # Get all water meters
             kasa.execute("select * from wmeter")
-            #
-            # Fetch the returning result
             all_water_meters: list[dict] = kasa.fetchall()
-            #
-            # Create dataframe of water meters using Pandas
             water_meters_df: DataFrame = DataFrame(all_water_meters)
             #
-            # 3. Get all water readings for each meter
-            # Execute query DB for all water readings
+            # Get all water readings
             kasa.execute("select * from wreading")
-            #
-            # Fetch the returning result (i.e., a list of dictionaries|rows)
             all_water_readings: list[dict] = kasa.fetchall()
-            #
-            # Create dataframe of water readings using Pandas
             water_readings_df: DataFrame = DataFrame(all_water_readings)
             #
-            # - Join dataframes for active water connection, water meter, and water
-            # reading tables
-            #
-            # 1. Join the active water connections dataframe to the water
-            #   meters dataframe
+            # Join active water connections to water meters
             water_connections_and_meters_df: DataFrame = merge(
                 active_water_connections_df, water_meters_df, on='wmeter',
                 how='inner'
             )
-            # 2. Join the active water connections and water meters dataframe
-            #   to the water readings dataframe
+            #
+            # Join to water readings
             all_water_connection_readings: DataFrame = merge(
                 water_connections_and_meters_df,
                 water_readings_df,
                 on='wmeter',
                 how='inner'
             )
-            # Get the current water reading for each water connection
-            # - Get latest reading date for each water connection
             #
-            # Convert date for all water connections readings to datetime
+            # Convert date to datetime for comparison
             all_water_connection_readings['date'] = pd.to_datetime(
                 all_water_connection_readings['date']
             )
-            # Filter the readings to only include those for the specified month and
-            #   year
+            #
+            # Filter readings to only include those on or before current cutoff
             filtered_df = all_water_connection_readings[
-                (all_water_connection_readings['date'].dt.month == self.client.month) &
-                (all_water_connection_readings['date'].dt.year == self.client.year)
+                all_water_connection_readings['date'] <= self.client.curr_cutoff
                 ]
             #
-            # Group the filtered data by water connection
-            grouped_water_connections_df = filtered_df.groupby('wconnection')
+            # Check if filtered_df is empty
+            if filtered_df.empty:
+                # Return empty DataFrame with expected columns
+                return DataFrame(columns=[
+                    'client', 'name', 'wconnection', 'serial_no',
+                    'rate', 'curr_date', 'curr_value'
+                ])
             #
-            # Get index of the latest reading (max date) for each water connection
+            # Group by water connection and get the index of max date
+            grouped_water_connections_df = filtered_df.groupby('wconnection')
             max_dates_indices = grouped_water_connections_df['date'].idxmax()
             #
             # Use .loc to get the rows that match those indices
@@ -318,7 +330,8 @@ class Water(Service):
             #
             # Filter columns to show
             latest_readings_df: DataFrame = latest_readings_df[
-                ['client', 'name_x', 'wconnection', 'serial_no', 'rate', 'date', 'value']
+                ['client', 'name_x', 'wconnection', 'serial_no', 'rate', 'date',
+                 'value']
             ]
             #
             # Rename column names
@@ -331,95 +344,184 @@ class Water(Service):
             )
             #
             # Truncate extra decimals from rate and curr_value columns
-            latest_readings_df['rate'] = (latest_readings_df['rate']
-                                          .astype(int))
-            latest_readings_df['curr_value'] = (latest_readings_df['curr_value']
-                                                .round(2))
+            latest_readings_df['rate'] = latest_readings_df['rate'].astype(int)
+            latest_readings_df['curr_value'] = latest_readings_df[
+                'curr_value'].round(2)
+
             return latest_readings_df
-            #
+
 
     #
     # Define method to get previous (last invoiced) water readings for each
     #   water connection
     def get_previous_readings(self) -> DataFrame:
+        """
+        Get previous water readings for each water connection.
+        Returns the latest reading on or before the previous cutoff date.
+        """
         with connection_and_cursor_manager() as (kon, kasa):
             #
-            # Get the last invoice date
-            # - Get last invoice period
-            # Execute query on database
-            kasa.execute("select * from period")
-            #
-            # Fetch the results from Database
-            all_periods: list[dict] = kasa.fetchall()
-            #
-            # Create a Dataframe from the fetched result
-            periods_df: DataFrame = DataFrame(all_periods)
-            #
-            # Handle month and year for the last period and have condition for
-            #   current date being January
-            last_month = self.client.month - 1 if self.client.month > 1 else 12
-            year = self.client.year if self.client.month > 1 else self.client.year - 1
-            #
-            # Get the invoice period of last month
-            last_period_df: DataFrame = periods_df[
-                (periods_df['month'] == last_month) & (periods_df['year'] == year)
-            ]
-            # Get cutoff date based on the returned period (last period)
-            cutoff_date: date = last_period_df.iloc[0]['cutoff']
-            #
-            # Get water readings based on the cutoff|last invoice date
-            # Execute query on database
+            # Get all water connections with their associated clients
             kasa.execute(
                 """
-                    select
-                        water.*,
-                        invoice.client
-                    from
-                        water
-                        inner join invoice on water.invoice = invoice.invoice
+                select
+                    wconnection.*,
+                    room.uid,
+                    agreement.client 
+                from 
+                    wconnection
+                    inner join room on wconnection.room = room.room
+                    inner join agreement on agreement.room = room.room
                 """
             )
             #
-            # Fetch the result of the query from database
-            all_invoiced_water_readings: list[dict] = kasa.fetchall()
+            # Fetch and store the query result from database
+            connected_clients: list[dict] = kasa.fetchall()
             #
-            # Create a dataframe from the fetched result
-            all_invoiced_water_readings_df: DataFrame = DataFrame(
-                all_invoiced_water_readings
-            )
+            # Create a DataFrame from the result
+            connected_clients_df: DataFrame = DataFrame(connected_clients)
             #
-            # - Filter the dataframe to have only rows of the last invoice date
-            # |cutoff date for each wconnection
-            last_invoiced_water_readings_df: DataFrame = \
-                all_invoiced_water_readings_df[
-                    all_invoiced_water_readings_df['curr_date'] == cutoff_date
-                ]
-            #
-            # Merge with last invoiced water readings active clients water
-            #   connections Dataframes
-            active_invoiced_water_readings_df: DataFrame = last_invoiced_water_readings_df.merge(
+            # Merge active clients from Client class
+            clients_water_connections_df: DataFrame = connected_clients_df.merge(
                 self.client.get_active_clients(), on="client", how="inner"
             )
             #
-            # Filter the columns to be displayed
-            active_invoiced_water_readings_df: DataFrame = (
-                active_invoiced_water_readings_df[
-                    ['client', 'name', 'wconnection', 'curr_date', 'curr_value']
-                ]
+            # Rename 'start_date' and 'end_date' columns for the water
+            #   connection to avoid conflicts with 'start_date' and 'end_date'
+            #   columns for agreement.
+            clients_water_connections_df: DataFrame = clients_water_connections_df.rename(
+                columns={
+                    'start_date_x': 'connection_start_date',
+                    'end_date_x': 'connection_end_date'
+                }
             )
             #
-            # Rename the column names
-            active_invoiced_water_readings_df: DataFrame = (
-                active_invoiced_water_readings_df.rename(
-                    columns={
-                        'curr_date': 'prev_date',
-                        'curr_value': 'prev_value'
-                    }
-                )
+            # Filter dataframe to have only active water connections
+            filter_date: date = date(9999, 12, 31)
+            active_water_connections_df: DataFrame = \
+            clients_water_connections_df[
+                clients_water_connections_df[
+                    'connection_end_date'] == filter_date
+                ]
+            #
+            # Get all water meters
+            kasa.execute("select * from wmeter")
+            all_water_meters: list[dict] = kasa.fetchall()
+            water_meters_df: DataFrame = DataFrame(all_water_meters)
+            #
+            # Get all water readings
+            kasa.execute("select * from wreading")
+            all_water_readings: list[dict] = kasa.fetchall()
+            water_readings_df: DataFrame = DataFrame(all_water_readings)
+            #
+            # Join active water connections to water meters
+            water_connections_and_meters_df: DataFrame = merge(
+                active_water_connections_df, water_meters_df, on='wmeter',
+                how='inner'
             )
+            #
+            # Join to water readings
+            all_water_connection_readings: DataFrame = merge(
+                water_connections_and_meters_df,
+                water_readings_df,
+                on='wmeter',
+                how='inner'
+            )
+            #
+            # Convert date to datetime for comparison
+            all_water_connection_readings['date'] = pd.to_datetime(
+                all_water_connection_readings['date']
+            )
+            #
+            # Filter readings to only include those on or before previous cutoff
+            filtered_df = all_water_connection_readings[
+                all_water_connection_readings['date'] <= self.client.prev_cutoff
+                ]
+            #
+            # Check if filtered_df is empty
+            if filtered_df.empty:
+                # Return empty DataFrame with expected columns
+                return DataFrame(columns=[
+                    'client', 'name', 'wconnection', 'prev_date', 'prev_value'
+                ])
+            #
+            # Group by water connection and get the index of max date
+            grouped_water_connections_df = filtered_df.groupby('wconnection')
+            max_dates_indices = grouped_water_connections_df['date'].idxmax()
+            #
+            # Use .loc to get the rows that match those indices
+            latest_readings_df = filtered_df.loc[max_dates_indices]
+            #
+            # Filter columns to show
+            latest_readings_df: DataFrame = latest_readings_df[
+                ['client', 'name_x', 'wconnection', 'date', 'value']
+            ]
+            #
+            # Rename column names
+            latest_readings_df: DataFrame = latest_readings_df.rename(
+                columns={
+                    'name_x': 'name',
+                    'date': 'prev_date',
+                    'value': 'prev_value'
+                }
+            )
+            #
+            # Truncate extra decimals from prev_value column
+            latest_readings_df['prev_value'] = latest_readings_df[
+                'prev_value'].round(2)
 
-            return active_invoiced_water_readings_df
+            return latest_readings_df
 
+    #
+    # Define method to calculate the Water charges for each client
+    def calculate_water_charges(self) -> DataFrame:
+        """
+        Calculate water charges for each client based on consumption.
+        Amount = (Current Reading - Previous Reading) × Rate
+        """
+        #
+        # Get current and previous readings
+        curr_readings = self.get_current_readings()
+        prev_readings = self.get_previous_readings()
+        #
+        # Merge current and previous readings
+        # Use left merge so all current readings are kept
+        water_df = curr_readings.merge(
+            prev_readings[['client', 'wconnection', 'prev_value']],
+            on=['client', 'wconnection'],
+            how='left'
+        )
+        #
+        # Fill missing previous values with 0 (for new connections or no previous readings)
+        water_df['prev_value'] = water_df['prev_value'].fillna(0)
+        #
+        # Calculate consumption (current - previous)
+        water_df['consumption'] = water_df['curr_value'] - water_df['prev_value']
+        #
+        # Calculate water amount (consumption × rate)
+        water_df['amount'] = water_df['consumption'] * water_df['rate']
+        #
+        # Round amount to 2 decimal places
+        water_df['amount'] = water_df['amount'].round(2)
+        #
+        # Reorder columns for better readability
+        water_df = water_df[[
+            'client',
+            'name',
+            'wconnection',
+            'serial_no',
+            'prev_value',
+            'curr_value',
+            'consumption',
+            'rate',
+            'amount'
+        ]]
+        return water_df
+
+    #
+    # Implement the abstract method to itemizes water charges for each client.
+    def itemize(self) -> DataFrame:
+        pass
 
 #
 # Define a class that encapsulates utility charges calculations for each client
@@ -691,6 +793,12 @@ class Charges(Service):
             ].fillna(0).astype(int)
             return auto_clients_charges_df
 
+    #
+    # Implement the abstract method to itemizes subscribed or auto charges
+    #   for each client.
+    def itemize(self) -> DataFrame:
+        pass
+
 
 #
 # Define a class that encapsulates rent charges for each client
@@ -702,53 +810,24 @@ class Rent(Service):
     # Get the report period (i.e., the first day of the month | day after the
     #   previous cutoff period and the last day of the month or the current
     #   cutoff period).
+    # Update the get_rental_charges method in the Rent class
+
     def get_rental_charges(self):
+        """
+        Calculate rental charges for each client.
+        Uses cutoff dates already calculated in Client class.
+        """
         with connection_and_cursor_manager() as (kon, kasa):
             #
-            # Get previous period cutoff based on variable date
-            kasa.execute(
-                """
-                    select
-                        cutoff as previous_month_cutoff
-                    from
-                        `period`
-                    where
-                        `period`.`year` = %s
-                        and `period`.`month` = %s
-                """, (self.client.year, self.client.month - 1)
-            )
-            start_period: list[dict] = kasa.fetchall()
-            start_period_df: DataFrame = DataFrame(start_period)
+            # Use the previous cutoff date (already calculated in Client class)
+            # Add 1 day to get the start of the current period
+            start_period = self.client.prev_cutoff + Timedelta(days=1)
             #
-            # Get the next day after the previous period cutoff
-            start_period_df["previous_month_cutoff"] = to_datetime(
-                start_period_df["previous_month_cutoff"]
-                + Timedelta(days=1)
-            )
+            # Use the current cutoff date (already calculated in Client class)
+            # This is the end of the current period
+            end_period = self.client.curr_cutoff
             #
-            # Rename the previous period cutoff to start period
-            start_period_df: DataFrame = start_period_df.rename(
-                columns={'previous_month_cutoff': 'start_period'}
-            )
-            #
-            # get end period based on variable date
-            kasa.execute(
-                """
-                    select
-                        cutoff as end_period
-                    from
-                        `period`
-                    where
-                        `period`.`year` = %s
-                        and `period`.`month` = %s
-                """, (self.client.year, self.client.month)
-            )
-            end_period: list[dict] = kasa.fetchall()
-            end_period_df: DataFrame = DataFrame(end_period)
-            #
-            # calculate difference in years to get period phase (normal period,
-            #   review period, renew period)
-            # 1. Select all agreements for valid clients
+            # Select all agreements for valid clients
             kasa.execute(
                 """
                 select
@@ -769,12 +848,15 @@ class Rent(Service):
             )
             agreements: list[dict] = kasa.fetchall()
             agreements_df: DataFrame = DataFrame(agreements)
+            #
+            # Merge active clients with their agreements
             valid_agreements_df: DataFrame = agreements_df.merge(
                 self.client.get_active_clients(), on="client", how="right"
             )
             #
             # Rename "name" column for client
-            valid_agreements_df = valid_agreements_df.rename(columns={'name': 'client_name'})
+            valid_agreements_df = valid_agreements_df.rename(
+                columns={'name': 'client_name'})
             #
             # Convert start_date to datetime FIRST (must be before month_difference calculation)
             valid_agreements_df['start_date_x'] = pd.to_datetime(
@@ -805,70 +887,98 @@ class Rent(Service):
                 'factor'
             ] = 0
             #
-            # Add the start and end period columns
-            valid_agreements_df: DataFrame = valid_agreements_df.merge(
-                start_period_df, how="cross"
-            )
-            valid_agreements_df: DataFrame = valid_agreements_df.merge(
-                end_period_df, how="cross"
-            )
+            # Add the start and end period columns (using cutoff dates from Client class)
+            valid_agreements_df['start_period'] = start_period
+            valid_agreements_df['end_period'] = end_period
             #
-            #
-            # 2. Get the difference in years between the agreememnt start date and
-            #   the start period date for the report
+            # Get the difference in years between the agreement start date and
+            # the start period date for the report
             #
             # Convert to datetime format
-            valid_agreements_df['start_date'] = pd.to_datetime(valid_agreements_df['start_date_x'])
-            valid_agreements_df['start_period'] = pd.to_datetime(valid_agreements_df['start_period'])
-            valid_agreements_df["day_difference"] = (valid_agreements_df["start_period"]
-                                                    - valid_agreements_df["start_date"]
-                                                 ).dt.total_seconds() / (60 * 60 * 24)
-            valid_agreements_df["year_diff"] = valid_agreements_df["day_difference"] / 365.25
+            valid_agreements_df['start_date'] = pd.to_datetime(
+                valid_agreements_df['start_date_x'])
+            valid_agreements_df['start_period'] = pd.to_datetime(
+                valid_agreements_df['start_period'])
+            valid_agreements_df["day_difference"] = (valid_agreements_df[
+                                                         "start_period"]
+                                                     - valid_agreements_df[
+                                                         "start_date"]
+                                                     ).dt.total_seconds() / (
+                                                                60 * 60 * 24)
+            valid_agreements_df["year_diff"] = valid_agreements_df[
+                                                   "day_difference"] / 365.25
             #
-            # 3. Label each client based on the difference in years
+            # Label each client based on the difference in years
             #
-            # 3.1. If difference between agreement start date and start period is
-            #   less than the review years then it is the normal period phase
+            # If difference between agreement start date and start period is
+            # less than the review years then it is the normal period phase
             valid_agreements_df.loc[valid_agreements_df["year_diff"]
-                                    < valid_agreements_df["review"], "phase"] = "normal"
+                                    < valid_agreements_df[
+                                        "review"], "phase"] = "normal"
             #
-            # 3.2. If difference between agreement start date and start period is
-            #   less than or equal to the duration years and is greater or equal to
-            #   the review years then it is the review period phase
+            # If difference between agreement start date and start period is
+            # less than or equal to the duration years and is greater or equal to
+            # the review years then it is the review period phase
             valid_agreements_df.loc[(valid_agreements_df["year_diff"]
-                                    >= valid_agreements_df["review"]) & (valid_agreements_df["year_diff"] <= valid_agreements_df["duration"]), "phase"] = "review"
-            # 3.3. If difference between agreement start date and start period is
-            # #   greater than the duration years then it is the renew period phase
+                                     >= valid_agreements_df["review"]) & (
+                                                valid_agreements_df[
+                                                    "year_diff"] <=
+                                                valid_agreements_df[
+                                                    "duration"]), "phase"] = "review"
+            #
+            # If difference between agreement start date and start period is
+            # greater than the duration years then it is the renew period phase
             valid_agreements_df.loc[valid_agreements_df["year_diff"]
-                                    > valid_agreements_df["duration"], "phase"] = "renew"
+                                    > valid_agreements_df[
+                                        "duration"], "phase"] = "renew"
             #
             # Calculate the rent for each tenant based on their period phase
             #
             # If client is in normal period phase then rent is as per agreement
-            valid_agreements_df.loc[valid_agreements_df["phase"] == "normal", "rent_charge"] = valid_agreements_df["amount"] * valid_agreements_df["factor"]
+            valid_agreements_df.loc[
+                valid_agreements_df["phase"] == "normal", "rent_charge"] = \
+            valid_agreements_df["amount"] * valid_agreements_df["factor"]
             #
             # If client is in review period phase then rent is increased by 10%
-            valid_agreements_df.loc[valid_agreements_df["phase"] == "review", "rent_charge"] = valid_agreements_df["amount"] * 1.1 * valid_agreements_df["factor"]
+            valid_agreements_df.loc[
+                valid_agreements_df["phase"] == "review", "rent_charge"] = \
+            valid_agreements_df["amount"] * 1.1 * valid_agreements_df["factor"]
             #
             # If client is in renew period phase then rent is increased by 20%
-            valid_agreements_df.loc[valid_agreements_df["phase"] == "renew", "rent_charge"] = valid_agreements_df["amount"] * 1.2 * valid_agreements_df["factor"]
+            valid_agreements_df.loc[
+                valid_agreements_df["phase"] == "renew", "rent_charge"] = \
+            valid_agreements_df["amount"] * 1.2 * valid_agreements_df["factor"]
             #
             # Remove null values and convert decimal values to integer
-            valid_agreements_df['amount'] = valid_agreements_df['amount'].fillna(0).astype(int)
-            valid_agreements_df["duration"] = valid_agreements_df["duration"].fillna(0).astype(int)
-            valid_agreements_df["rent_charge"] = valid_agreements_df["rent_charge"].fillna(0).astype(int)
+            valid_agreements_df['amount'] = valid_agreements_df[
+                'amount'].fillna(0).astype(int)
+            valid_agreements_df["duration"] = valid_agreements_df[
+                "duration"].fillna(0).astype(int)
+            valid_agreements_df["rent_charge"] = valid_agreements_df[
+                "rent_charge"].fillna(0).astype(int)
             #
             # Remove time from date values
-            valid_agreements_df['start_date'] = to_datetime(valid_agreements_df['start_date']).dt.date
-            valid_agreements_df['start_period'] = to_datetime(valid_agreements_df['start_period']).dt.date
+            valid_agreements_df['start_date'] = to_datetime(
+                valid_agreements_df['start_date']).dt.date
+            valid_agreements_df['start_period'] = to_datetime(
+                valid_agreements_df['start_period']).dt.date
+            valid_agreements_df['end_period'] = to_datetime(
+                valid_agreements_df['end_period']).dt.date
             #
             # Filter and reorder columns to display
             filtered_valid_agreements_df: DataFrame = valid_agreements_df[
-                ['year', 'month', 'client', 'room', 'client_name', 'agreement', 'amount',
+                ['year', 'month', 'client', 'room', 'client_name', 'agreement',
+                 'amount',
                  'quarterly', 'start_date', 'duration', 'review', 'factor',
                  'start_period', 'end_period', 'phase', 'rent_charge']
             ]
             return filtered_valid_agreements_df
+
+    #
+    # Implement the abstract method to itemizes rental charges
+    #   for each client.
+    def itemize(self) -> DataFrame:
+        pass
 
 
 #
@@ -1143,6 +1253,12 @@ class Electricity(Service):
 
         return service_ebills_df
 
+    #
+    # Implement the abstract method to itemizes electricity bills for each
+    #   client.
+    def itemize(self) -> DataFrame:
+        pass
+
 
 #
 # Define a class that encapsulates bank reconciliation
@@ -1182,19 +1298,310 @@ class Payment(Item):
 
             return current_payments_df
 
+    #
+    # Implement the abstract method to itemizes payments for each client.
+    def itemize(self) -> DataFrame:
+        pass
 
 #
 # Define a class that encapsulates opening balance
 class Opening_Balance(Item):
     def __init__(self, client):
         super().__init__(client)
+    #
+    # Get opening balance
+    def get_previous_opening_balance(self) -> DataFrame:
+        with connection_and_cursor_manager() as (kon, kasa):
+            #
+            # Get all closing balances for current month
+            kasa.execute(
+                """
+                SELECT
+                    client.client,
+                    client.name,
+                    invoice.invoice,
+                    period.period,
+                    period.cutoff,
+                    closing_balance.amount
+                FROM
+                    client
+                    inner join invoice on invoice.client = client.client
+                    inner join period on invoice.period = period.period
+                    inner join closing_balance on closing_balance.invoice = invoice.invoice
+                where
+                    period.cutoff > %s and
+                    period.cutoff <= %s
+                """, (self.client.prev_cutoff, self.client.curr_cutoff)
+            )
+            #
+            # Fetch and store the query result from database
+            opening_balance: list[dict] = kasa.fetchall()
+            #
+            # Create a DataFrame from the result
+            opening_balance_df: DataFrame = DataFrame(opening_balance)
+            #
+            # Truncate decimal places
+            opening_balance_df['amount'] = opening_balance_df['amount'].astype(int)
 
+            return opening_balance_df
+    #
+    # Calculate opening Balance for next month
+    def calculate_opening_balance(self) -> DataFrame:
+        """
+           Calculate current opening balance using the formula:
+           O₀ = O₁ + W₁ - P₁ - C₁ + D₁ + R₀ + S₀
+
+           Where:
+           O₁ = Previous opening balance (from previous period's closing balance)
+           W₁ = Water charges (current period)
+           P₁ = Payments (current period)
+           C₁ = Credits (current period)
+           D₁ = Debits (current period)
+           R₀ = Rent (current period)
+           S₀ = Service charges (current period)
+
+            UNION structure:
+
+            client | service | amount
+
+            Grouped by service (Opening, Rent, Water, etc.)
+        """
+
+        # ---------------------------
+        # Opening Balance
+        # ---------------------------
+        opening_txn = (
+            self.get_previous_opening_balance()[['client', 'amount']]
+            .groupby('client', as_index=False)
+            .sum()
+        )
+        opening_txn['service'] = 'Opening'
+
+        # ---------------------------
+        # Rent
+        # ---------------------------
+        rent = Rent(self.client)
+        rent_df = rent.get_rental_charges()
+
+        rent_txn = (
+            rent_df.groupby('client')['rent_charge']
+            .sum()
+            .reset_index()
+            .rename(columns={'rent_charge': 'amount'})
+        )
+        rent_txn['service'] = 'Rent'
+
+        # ---------------------------
+        # Water
+        # ---------------------------
+        water = Water(self.client)
+        water_txn = (
+            water.calculate_water_charges()
+            .groupby('client')['amount']
+            .sum()
+            .reset_index()
+        )
+        water_txn['service'] = 'Water'
+
+        # ---------------------------
+        # Service Charges
+        # ---------------------------
+        charges = Charges(self.client)
+
+        auto_txn = (
+            charges.get_auto_charges()
+            .groupby('client')['calculated_amount']
+            .sum()
+            .reset_index()
+            .rename(columns={'calculated_amount': 'amount'})
+        )
+
+        sub_df = charges.get_subscribed_charges()
+        factors = rent_df[['client', 'factor']].drop_duplicates()
+
+        sub_txn = (
+            sub_df
+            .merge(factors, on='client', how='left')
+            .assign(amount=lambda x: x['actual_price'] * x['factor'])
+            .groupby('client')['amount']
+            .sum()
+            .reset_index()
+        )
+
+        service_txn = (
+            auto_txn.merge(sub_txn, on='client', how='outer', suffixes=('_auto', '_sub'))
+            .fillna(0)
+        )
+
+        service_txn['amount'] = service_txn['amount_auto'] + service_txn['amount_sub']
+        service_txn = service_txn[['client', 'amount']]
+        service_txn['service'] = 'Service_Charges'
+
+        # ---------------------------
+        # Electricity
+        # ---------------------------
+        electricity = Electricity(self.client)
+        client_map = self.client.get_active_clients()[['client', 'name', 'title']]
+
+        electricity_txn = (
+            electricity.get_client_ebills()
+            .assign(current_amount=lambda x: x['current_amount'].astype(float))
+            .groupby('client_name')['current_amount']
+            .sum()
+            .reset_index()
+            .rename(columns={'client_name': 'name', 'current_amount': 'amount'})
+            .merge(client_map, on='name', how='left')
+            [['client', 'amount']]
+        )
+        electricity_txn['service'] = 'Electricity'
+
+        # ---------------------------
+        # Payments (negative)
+        # ---------------------------
+        payment = Payment(self.client)
+
+        payment_txn = (
+            payment.get_payments()
+            .groupby('name')['amount']
+            .sum()
+            .reset_index()
+            .merge(client_map, on='name', how='left')
+            [['client', 'amount']]
+        )
+        payment_txn['amount'] = -payment_txn['amount']
+        payment_txn['service'] = 'Payment'
+
+        # ---------------------------
+        # Credit (negative)
+        # ---------------------------
+        credit = Credit(self.client)
+
+        credit_txn = (
+            credit.get_credit()
+            .groupby('name')['amount']
+            .sum()
+            .reset_index()
+            .merge(client_map, on='name', how='left')
+            [['client', 'amount']]
+        )
+        credit_txn['amount'] = -credit_txn['amount']
+        credit_txn['service'] = 'Credit'
+
+        # ---------------------------
+        # Debit (positive)
+        # ---------------------------
+        debit = Debit(self.client)
+
+        debit_txn = (
+            debit.get_debit()
+            .groupby('client')['amount']
+            .sum()
+            .reset_index()
+            .merge(client_map, on='client', how='left')
+            [['client', 'amount']]
+        )
+        debit_txn['service'] = 'Debit'
+
+        # ---------------------------
+        # UNION
+        # ---------------------------
+        all_txns = pd.concat([
+            opening_txn,
+            rent_txn,
+            water_txn,
+            service_txn,
+            electricity_txn,
+            payment_txn,
+            credit_txn,
+            debit_txn
+        ], ignore_index=True)
+
+        # ---------------------------
+        # Final cleanup
+        # ---------------------------
+        all_txns['amount'] = all_txns['amount'].fillna(0).astype(int)
+
+        service_order = [
+            'Opening',
+            'Rent',
+            'Water',
+            'Service_Charges',
+            'Electricity',
+            'Payment',
+            'Credit',
+            'Debit'
+        ]
+
+        all_txns['service'] = pd.Categorical(
+            all_txns['service'],
+            categories=service_order,
+            ordered=True
+        )
+
+        all_txns = all_txns.sort_values(['service', 'client']).reset_index(drop=True)
+        #
+        # Tabulate the data horizontally
+        # Use 'client' as index to group transactions per client
+        # pivoted_txns = all_txns.pivot_table(
+        #     index='client',
+        #     columns='service',
+        #     values='amount',
+        #     fill_value=0,
+        #     aggfunc='sum'
+        # )
+        #
+        # Use cross tab to pivot the DataFrame
+        pivoted_txns = pd.crosstab(
+            index=all_txns['client'],  # rows
+            columns=all_txns['service'],  # columns
+            values=all_txns['amount'],  # values to aggregate
+            aggfunc='sum'  # aggregation
+        )
+        #
+        # Get Subtotal for all amounts.
+        pivoted_txns["Closing_Balance"] = pivoted_txns[['Opening', 'Payment', 'Rent',
+            'Service_Charges', 'Water', 'Electricity', 'Credit', 'Debit']].sum(axis=1)
+        #
+        # Impute NaN values with zero
+        pivoted_txns = pivoted_txns.fillna(0).astype(int)
+        #
+        # Remove the client as index
+        pivoted_txns = pivoted_txns.reset_index()
+        #
+        # Add client name and title to DataFrame
+        pivoted_txns = pivoted_txns.merge(
+            client_map,
+            on='client',
+            how='left'
+        )
+        #
+        # Reorder columns
+        pivoted_txns = pivoted_txns[[
+            'client', 'name', 'title', 'Opening', 'Payment', 'Rent',
+            'Service_Charges', 'Water', 'Electricity', 'Credit', 'Debit',
+            'Closing_Balance'
+        ]]
+
+
+        return pivoted_txns
+
+    #
+    # Implement the abstract method to itemizes opening balances for each
+    #   client.
+    def itemize(self) -> DataFrame:
+        pass
 
 #
 # Define a class that encapsulates invoice adjustments
 class Adjustment(Item):
     def __init__(self, client):
         super().__init__(client)
+
+    #
+    # Implement the abstract method to itemizes both credit and debit
+    #   adjustments for each client.
+    def itemize(self) -> DataFrame:
+        pass
 
 
 #
@@ -1234,6 +1641,12 @@ class Credit(Adjustment):
 
             return credit_df
 
+    #
+    # Implement the abstract method to itemizes both credit adjustments for each
+    #   client.
+    def itemize(self) -> DataFrame:
+        pass
+
 
 #
 # Define a class that encapsulates debit for each client
@@ -1247,7 +1660,8 @@ class Debit(Adjustment):
             # Get all payments for current month
             kasa.execute(
                 """
-                select 
+                select
+                    client.client, 
                     client.name,
                     debit.date,
                     debit.amount,
@@ -1264,10 +1678,39 @@ class Debit(Adjustment):
             # Fetch and store the query result from database
             debit: list[dict] = kasa.fetchall()
             #
-            # Create a DataFrame from the result
-            debit_df: DataFrame = DataFrame(debit)
+            # Force schema: Even if there is no data, the listed columns must exist.
+            debit_df = DataFrame(debit, columns=[
+                'client',
+                'name',
+                'date',
+                'amount',
+                'reason'
+            ])
             #
-            # Truncate decimal places
-            debit_df['amount'] = debit_df['amount'].astype(int)
+            # Reduce to needed fields before aggregation
+            debit_df = DataFrame(debit, columns=['client', 'amount'])
+
+            # Aggregate debits
+            debit_df = (
+                debit_df
+                .groupby('client')['amount']
+                .sum()
+                .reset_index()
+            )
+
+            # Get ALL active clients
+            clients_df = self.client.get_active_clients()[['client']]
+
+            # Left join → ensures every client appears
+            debit_df = clients_df.merge(debit_df, on='client', how='left')
+
+            # Fill missing with 0
+            debit_df['amount'] = debit_df['amount'].fillna(0).astype(int)
 
             return debit_df
+
+    #
+    # Implement the abstract method to itemizes both debit adjustments for each
+    #   client.
+    def itemize(self) -> DataFrame:
+        pass

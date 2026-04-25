@@ -1,10 +1,10 @@
 #
 # Import classes
-from rentize import Client, Item, Service, Water, Charges, Rent, Electricity, Payment, Adjustment, Credit, Debit
+from rentize import Client, Item, Service, Water, Charges, Rent, Electricity, Payment, Adjustment, Credit, Debit, Opening_Balance
 #
 # Date Variables
-month = 6
-year = 2019
+month = 2
+year = 2026
 #
 # Instantiate the Client class with the specified date variables.
 # Add factor/ quarterly rate for clients on active client class ????????????????????????????????????????
@@ -25,18 +25,20 @@ clients_df = client.get_active_clients()
 # # # Get previous water readings based on the variable date at the top
 # prev_water_rds = Water(client).get_previous_readings()
 #
+# Get water charges
+# water_charges = Water(client).calculate_water_charges()
 #
 # Instantiate Charges class
-# charges = Charges(client)
+charges = Charges(client)
 #
 # Show subscribed charges for each client
-# subs_df = charges.get_subscribed_charges()
+subs_df = charges.get_subscribed_charges()
 #
 # Show automatic charges for each client
-# auto_charges_df = charges.get_auto_charges()
+auto_charges_df = charges.get_auto_charges()
 # # Instantiate Rent class
-# rent = Rent(client)
-# rent_p = rent.get_rental_charges()
+rent = Rent(client)
+rent_p = rent.get_rental_charges()
 #
 # # Use the current client to create an instance of the Electricity class.
 # e_class = Electricity(client)
@@ -49,17 +51,22 @@ clients_df = client.get_active_clients()
 # service_ebills = e_class.get_service_ebills()
 #
 # Instantiate the payment class with the item object
-payment = Payment(client)
-curr_payments = payment.get_payments()
+# payment = Payment(client)
+# curr_payments = payment.get_payments()
 #
 # Instantiate Adjustment class
 # adjustment = Adjustment(client)
 #
-# Instamtiate Credit class
-credit = Credit(client)
-credit_payments = credit.get_credit()
-#
-# Instantiate Debit class
+# # Instantiate Credit class
+# credit = Credit(client)
+# credit_payments = credit.get_credit()
+# #
+# # Instantiate Debit class
 debit = Debit(client)
 debit_payments = debit.get_debit()
+#
+# Instantiate Opening Balance class
+opening_balance = Opening_Balance(client)
+closing_balance_amounts = opening_balance.get_previous_opening_balance()
+opening_balance_amounts = opening_balance.calculate_opening_balance()
 print('finished')

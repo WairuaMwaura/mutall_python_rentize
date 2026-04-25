@@ -1,53 +1,86 @@
-"use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __generator = (this && this.__generator) || function (thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
+    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (g && (g = 0, op[0] && (_ = 0)), _) try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+    }
+};
+var _this = this;
 // Wait until the entire HTML document (DOM) has fully loaded
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", function () {
     //
     // Get a reference to the Send button by its ID and ensure it’s an HTMLButtonElement
-    const sendBtn = document.querySelector("#sendBtn");
+    var sendBtn = document.querySelector("#sendBtn");
     //
     // If the button exists in the DOM, attach an event listener to it
     if (sendBtn) {
-        sendBtn.addEventListener("click", async () => {
-            //
-            // 1️⃣ Get the user's input field and ensure it's an HTMLInputElement
-            const userInput = document.querySelector("#userInput");
-            //
-            // If the input element is missing, stop execution.
-            if (!userInput)
-                return;
-            //
-            // Extract the value typed by the user
-            const inputValue = userInput.value;
-            //
-            // 2️⃣ Send an asynchronous POST request to the backend endpoint `/process`
-            // The fetch() function returns a Promise<Response>
-            const response = await fetch("/process", {
-                //
-                // Define the HTTP method.
-                method: "POST",
-                // 
-                // Tell the backend we’re sending JSON.
-                headers: { "Content-Type": "application/json" },
-                // 
-                // Convert the JS object to a JSON string.
-                body: JSON.stringify({
-                    input: inputValue
-                })
+        sendBtn.addEventListener("click", function () { return __awaiter(_this, void 0, void 0, function () {
+            var userInput, inputValue, response, html, responseDiv;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        userInput = document.querySelector("#userInput");
+                        //
+                        // If the input element is missing, stop execution.
+                        if (!userInput)
+                            return [2 /*return*/];
+                        inputValue = userInput.value;
+                        return [4 /*yield*/, fetch("/process", {
+                                //
+                                // Define the HTTP method.
+                                method: "POST",
+                                // 
+                                // Tell the backend we’re sending JSON.
+                                headers: { "Content-Type": "application/json" },
+                                // 
+                                // Convert the JS object to a JSON string.
+                                body: JSON.stringify({
+                                    input: inputValue
+                                })
+                            })];
+                    case 1:
+                        response = _a.sent();
+                        return [4 /*yield*/, response.text()];
+                    case 2:
+                        html = _a.sent();
+                        responseDiv = document.getElementById("response-div");
+                        //
+                        // If the div exists, update its content
+                        if (responseDiv) {
+                            responseDiv.innerHTML = html;
+                        }
+                        return [2 /*return*/];
+                }
             });
-            //
-            // 3️⃣ Await the backend’s reply as text (HTML snippet)
-            const html = await response.text();
-            //
-            // 4️⃣ Find the div that will display the server response
-            const responseDiv = document.getElementById("response-div");
-            //
-            // If the div exists, update its content
-            if (responseDiv) {
-                responseDiv.innerHTML = html;
-            }
-            //
-            // 5️⃣ We don’t reset or modify the input field
-            // So the user’s typed text remains visible for context
-        });
+        }); });
     }
 });

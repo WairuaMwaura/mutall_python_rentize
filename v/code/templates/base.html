@@ -8,8 +8,8 @@
       <title>{% block title %}Rentize{% endblock %}</title>
       <!--
         Link the HTML to the stylesheets in the static folder.-->
-      <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
-      <link rel="stylesheet" href="{{ url_for('static', path='table.css') }}">
+      <link rel="stylesheet" href="{{ static_base }}/styles.css">
+      <link rel="stylesheet" href="{{ static_base }}/table.css">
       <!--
         Allow extra styling for each page. -->
       {% block extra_styles %}{% endblock %}
@@ -49,7 +49,7 @@
     </div>
     <!--
       Script for showing table interactivity. -->
-    <script src="{{ url_for('static', path='table.js') }}"></script>
+    <script src="{{ static_base }}/table.js"></script>
     <!--
       Allow for extra JS scripts. -->
     {% block extra_scripts %}{% endblock %}

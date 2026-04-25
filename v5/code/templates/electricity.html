@@ -1,0 +1,44 @@
+<!--
+Extending the base HTML template.-->
+{% extends "base.html" %}
+<!--
+Customize the title of the page.-->
+{% block title %}Electricity - Rentize{% endblock %}
+<!--
+The form for user input-->
+{% block generate %}
+    <div>
+
+        <label for="year_month">Select Month and Year:</label>
+        <input type="month" id="year_month" name="year_month">
+
+        <button type="button" id="generate">Generate</button>
+
+    </div>
+{% endblock %}
+<!--
+Display ebills_table if user generates the all bills. -->
+{% block content %}
+    <div id="all_ebills"> {{ current_ebills | safe }} </div>
+{% endblock %}
+<!--
+Display client, unattended, and service electricity bills buttons to display respective tables.-->
+{% block service_select %}
+    <button id="client">Client bills</button>
+    <button id="unattended">Unattended bills</button>
+    <button id="service">Service bills</button>
+{% endblock %}
+<!--
+Display the selected table based on the button the user clicked.-->
+{% block service %}
+    <div id="service_content">
+        <!-- 
+        The specified ebill tables will be displayed inside this div. -->
+        {{ client_ebills | safe }}
+    </div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+    <script src="{{ static_base }}/electricity.js"></script>
+{% endblock %}

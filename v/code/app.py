@@ -16,6 +16,7 @@ from fastapi.responses import HTMLResponse, PlainTextResponse
 #
 # Import os to work with file paths
 import os
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # 
 # Import my classes.
 from rentize import Client, Electricity
@@ -25,17 +26,21 @@ from datetime import datetime
 import calendar
 #
 # Instantiate the FastAPI to a variable.
-my_app = FastAPI(root_path="/joshua")
-# 
+# my_app = FastAPI(root_path="/joshua")
+my_app = FastAPI(root_path="/rentize")
+#
 # Mount a folder for static files. 
 # Anytime someone visits /static/... in the browser, serve them files from this folder.
 # It creates an actual route (/static) in the app.
-my_app.mount("/static", StaticFiles(directory="../static"), name="static")
+my_app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "../static")), name="static")
 #
 # Point FastAPI to the templates folder.
 # When I want to render an HTML page, go look for template files inside this folder.
 # The app will load index.html from the templates/ folder, render it (fill placeholders, variables), then serve it to the user.
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+#
+# Add this helper to inject static base into every template
+STATIC_BASE = "/rentize/static"
 #
 # Home page to the app - returns a HTML page.
 @my_app.get("/", response_class=HTMLResponse)
@@ -43,7 +48,8 @@ def index(request: Request):
     return templates.TemplateResponse(
         "index.html",
         {
-            "request": request
+            "request": request,
+            "static_base": STATIC_BASE
         }
     )
   
@@ -102,6 +108,7 @@ async def electricity(request: Request):
             "electricity.html",
             {
                 "request": request,
+                "static_base": STATIC_BASE,
                 "current_ebills": html_content,
                 "client_ebills": client_html_content
             }
